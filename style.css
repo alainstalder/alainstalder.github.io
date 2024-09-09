@@ -1,14 +1,27 @@
-body {font-family: 'Roboto'}
-code {font-family: 'Roboto Mono'}
+body {
+  font-family: 'Roboto';
+  max-width: 800px;
+}
+
+code {
+  font-family: 'Roboto Mono';
+}
+
 img {border: 0px}
+
 a {text-decoration: none}
+
 p.x-small {font-size: x-small}
+
+span.gray { color: gray; }
+
 @font-face {
   font-family: 'Roboto';
   font-style: normal;
   font-weight: 400;
   src: local('Roboto'), local('Roboto-Regular'), url(Roboto.ttf) format('truetype');
 }
+
 @font-face {
   font-family: 'Roboto Mono';
   font-style: normal;
