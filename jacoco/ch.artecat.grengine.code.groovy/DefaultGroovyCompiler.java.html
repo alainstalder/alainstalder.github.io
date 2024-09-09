@@ -1,0 +1,669 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultGroovyCompiler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.artecat.grengine.code.groovy</a> &gt; <span class="el_source">DefaultGroovyCompiler.java</span></div><h1>DefaultGroovyCompiler.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.artecat.grengine.code.groovy;
+
+import ch.artecat.grengine.code.Bytecode;
+import ch.artecat.grengine.code.Code;
+import ch.artecat.grengine.code.CompiledSourceInfo;
+import ch.artecat.grengine.code.Compiler;
+import ch.artecat.grengine.code.DefaultCode;
+import ch.artecat.grengine.code.DefaultSingleSourceCode;
+import ch.artecat.grengine.except.CompileException;
+import ch.artecat.grengine.source.FileSource;
+import ch.artecat.grengine.source.Source;
+import ch.artecat.grengine.source.TextSource;
+import ch.artecat.grengine.source.UrlSource;
+import ch.artecat.grengine.sources.Sources;
+
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import groovy.grape.Grape;
+import groovy.grape.GrapeEngine;
+import groovy.lang.GroovyClassLoader;
+import org.codehaus.groovy.ast.ClassNode;
+import org.codehaus.groovy.classgen.GeneratorContext;
+import org.codehaus.groovy.control.CompilationFailedException;
+import org.codehaus.groovy.control.CompilationUnit;
+import org.codehaus.groovy.control.CompilePhase;
+import org.codehaus.groovy.control.CompilerConfiguration;
+import org.codehaus.groovy.control.Phases;
+import org.codehaus.groovy.control.SourceUnit;
+import org.codehaus.groovy.control.customizers.CompilationCustomizer;
+import org.codehaus.groovy.tools.GroovyClass;
+
+import static java.util.Objects.requireNonNull;
+
+
+/**
+ * Default Groovy compiler.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class DefaultGroovyCompiler implements Compiler {
+    
+    private final Builder builder;
+    private final ClassLoader parent;
+    private final CompilerConfiguration config;
+    private final GroovyClassLoader groovyClassLoader;
+
+    /**
+     * constructor from builder.
+     *
+     * @param builder builder
+     * 
+     * @since 1.0
+     */
+<span class="fc" id="L79">    protected DefaultGroovyCompiler(final Builder builder) {</span>
+<span class="fc" id="L80">        this.builder = builder.commit();</span>
+<span class="fc" id="L81">        parent = builder.getParent();</span>
+<span class="fc" id="L82">        config = builder.getCompilerConfiguration();</span>
+<span class="fc" id="L83">        final GroovyClassLoader loader = GrapeCompilationCustomizer.getLoaderIfConfigured(parent, config);</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        groovyClassLoader = (loader == null) ? new GroovyClassLoader(parent, config) : loader;</span>
+<span class="fc" id="L85">    }</span>
+    
+    /**
+     * constructor from parent class loader set to the context class loader of the current thread
+     * and from default compiler configuration.
+     * 
+     * @since 1.0
+     */
+    public DefaultGroovyCompiler() {
+<span class="fc" id="L94">        this(new Builder());</span>
+<span class="fc" id="L95">    }</span>
+
+    /**
+     * constructor from given parent class loader and default compiler configuration.
+     *
+     * @param parent parent class loader
+     *
+     * @throws NullPointerException if the parent class loader is null
+     * 
+     * @since 1.0
+     */
+    public DefaultGroovyCompiler(final ClassLoader parent) {
+<span class="fc" id="L107">        this(new Builder()</span>
+<span class="fc" id="L108">                .setParent(requireNonNull(parent, &quot;Parent class loader is null.&quot;))</span>
+        );
+<span class="fc" id="L110">    }</span>
+    
+    /**
+     * constructor from given parent class loader and compiler configuration.
+     *
+     * @param parent parent class loader
+     * @param config compiler configuration
+     *
+     * @throws NullPointerException if the parent class loader or the compiler configuration is null
+     * 
+     * @since 1.0
+     */
+    public DefaultGroovyCompiler(final ClassLoader parent, final CompilerConfiguration config) {
+<span class="fc" id="L123">        this(new Builder()</span>
+<span class="fc" id="L124">                .setParent(requireNonNull(parent, &quot;Parent class loader is null.&quot;))</span>
+<span class="fc" id="L125">                .setCompilerConfiguration(requireNonNull(config, &quot;Compiler configuration is null.&quot;))</span>
+        );
+<span class="fc" id="L127">    }</span>
+
+    /**
+     * modifies the given compiler configuration for Grape support in this compiler.
+     * &lt;p&gt;
+     * Only has an effect during compilation if Grape support had been enabled
+     * and only with this compiler class.
+     *
+     * @param config compiler configuration to enable for Grape
+     * @param runtimeLoader the GroovyClassLoader that is intended to be used later
+     *                      as a parent loader when loading classes compiled with
+     *                      the given compiler configuration
+     *
+     * @return modified compiler configuration, same instance as argument
+     * @throws NullPointerException if the compiler configuration is null
+     *
+     * @since 1.2
+     */
+    public static CompilerConfiguration withGrape(final CompilerConfiguration config,
+            final GroovyClassLoader runtimeLoader) {
+<span class="fc" id="L147">        requireNonNull(config, &quot;Compiler configuration is null.&quot;);</span>
+<span class="fc" id="L148">        GrapeCompilationCustomizer.enableGrape(config, runtimeLoader);</span>
+<span class="fc" id="L149">        return config;</span>
+    }
+
+    /**
+     * enable Grape support with the {@link Grape} class as lock.
+     * &lt;p&gt;
+     * Currently wraps the {@link GrapeEngine} in the {@link Grape} class with
+     * a wrapper that fixes an open Groovy issue (GROOVY-7407) using the lock
+     * and provides a mechanism needed for Grape with Grengine. See user manual
+     * under &quot;Grengine and Grape&quot; for more information.
+     * &lt;p&gt;
+     * Call once before using this compiler class in combination with Grengine
+     * (equivalent to calling &lt;code&gt;Grengine.Grape.activate()&lt;/code&gt;).
+     *
+     * @since 1.2
+     */
+    public static void enableGrapeSupport() {
+<span class="fc" id="L166">        GrengineGrapeEngine.wrap(Grape.class);</span>
+<span class="fc" id="L167">    }</span>
+
+    /**
+     * enable Grape support with the given class as lock.
+     * &lt;p&gt;
+     * Currently wraps the {@link GrapeEngine} in the {@link Grape} class with
+     * a wrapper that fixes an open Groovy issue (GROOVY-7407) using the lock
+     * and provides a mechanism needed for Grape with Grengine. See user manual
+     * under &quot;Grengine and Grape&quot; for more information.
+     * &lt;p&gt;
+     * Call once before using this compiler class in combination with Grengine
+     * (equivalent to calling &lt;code&gt;Grengine.Grape.activate(lock)&lt;/code&gt;).
+     *
+     * @param lock the lock to use
+     *
+     * @throws NullPointerException if the lock is null
+     *
+     * @since 1.2
+     */
+    public static void enableGrapeSupport(Object lock) {
+<span class="fc" id="L187">        requireNonNull(lock, &quot;Lock is null.&quot;);</span>
+<span class="fc" id="L188">        GrengineGrapeEngine.wrap(lock);</span>
+<span class="fc" id="L189">    }</span>
+
+    /**
+     * disable Grape support.
+     * &lt;p&gt;
+     * Currently unwraps the {@link GrapeEngine} in the {@link Grape}.
+     * See user manual under &quot;Grengine and Grape&quot; for more information.
+     * &lt;p&gt;
+     * Call once when done using this compiler class in combination with Grengine
+     * (equivalent to calling &lt;code&gt;Grengine.Grape.deactivate()&lt;/code&gt;).
+     *
+     * @since 1.2
+     */
+    public static void disableGrapeSupport() {
+<span class="fc" id="L203">        GrengineGrapeEngine.unwrap();</span>
+<span class="fc" id="L204">    }</span>
+
+    /**
+     * compiles the given Groovy script sources to an instance of {@link Code} in memory.
+     * &lt;p&gt;
+     * If {@link CompilerConfiguration#getTargetDirectory()} is not null,
+     * class files are also written to the target directory.
+     *
+     * @param sources sources
+     *
+     * @return code
+     * @throws CompileException if compilation failed
+     * @throws NullPointerException if sources are null
+     * 
+     * @since 1.0
+     */
+    @Override
+    public Code compile(final Sources sources) {
+<span class="fc" id="L222">        requireNonNull(sources, &quot;Sources are null.&quot;);</span>
+        try {
+<span class="fc" id="L224">            final CompilationUnit cu = new CompilationUnit(config, null, groovyClassLoader);</span>
+<span class="fc" id="L225">            final Map&lt;Source,SourceUnit&gt; sourceUnitMap = sources.getSourceSet().stream()</span>
+<span class="fc" id="L226">                    .collect(Collectors.toMap(source -&gt; source, source -&gt; addToCompilationUnit(cu, source, sources)));</span>
+
+<span class="fc bfc" id="L228" title="All 2 branches covered.">            final int phase = (config.getTargetDirectory() == null) ? Phases.CLASS_GENERATION : Phases.OUTPUT;</span>
+<span class="fc" id="L229">            cu.compile(phase);</span>
+
+<span class="fc" id="L231">            final Map&lt;Source,CompiledSourceInfo&gt; compiledSourceInfoMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L232">            sourceUnitMap.forEach((source, su) -&gt; {</span>
+<span class="fc" id="L233">                final Set&lt;String&gt; classNames = su.getAST().getClasses().stream()</span>
+<span class="fc" id="L234">                        .map(ClassNode::getName)</span>
+<span class="fc" id="L235">                        .collect(Collectors.toSet());</span>
+<span class="fc" id="L236">                final CompiledSourceInfo compiledSourceInfo = new CompiledSourceInfo(source,</span>
+<span class="fc" id="L237">                        su.getAST().getMainClassName(), classNames, source.getLastModified());</span>
+                //System.out.println(&quot;SU MainClassName: &quot; + su.getAST().getMainClassName());
+<span class="fc" id="L239">                compiledSourceInfoMap.put(source, compiledSourceInfo);</span>
+<span class="fc" id="L240">            });</span>
+
+            // extra object to prevent compiler warning (raw List in Groovy 2, List&lt;GroovyClass&gt; in Groovy 3)
+<span class="fc" id="L243">            Object cuClassesObject = cu.getClasses();</span>
+            @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L245">            final Map&lt;String, Bytecode&gt; bytecodeMap = ((List&lt;GroovyClass&gt;)cuClassesObject).stream()</span>
+<span class="fc" id="L246">                    .collect(Collectors.toMap(GroovyClass::getName, c -&gt; new Bytecode(c.getName(), c.getBytes())));</span>
+
+            final Code code;
+<span class="fc bfc" id="L249" title="All 2 branches covered.">            if (sources.getSourceSet().size() == 1) {</span>
+<span class="fc" id="L250">                code = new DefaultSingleSourceCode(sources.getName(), compiledSourceInfoMap, bytecodeMap);</span>
+            } else {
+<span class="fc" id="L252">                code = new DefaultCode(sources.getName(), compiledSourceInfoMap, bytecodeMap);</span>
+            }
+            //System.out.println(&quot;--- compile ---&quot;);
+<span class="fc" id="L255">            return code;</span>
+            
+<span class="fc" id="L257">        } catch (CompileException e) {</span>
+<span class="fc" id="L258">            throw e;</span>
+<span class="fc" id="L259">        } catch (Throwable t) {</span>
+<span class="fc" id="L260">            throw new CompileException(&quot;Compile failed for sources &quot; + sources + &quot;.&quot;, t, sources);</span>
+        }
+    }
+    
+    /**
+     * adds the given source to the given compilation unit and returns the resulting source unit.
+     *
+     * @param cu compilation unit
+     * @param source source
+     * @param sources all sources, needed only if the type of source is unsupported,
+     *                for the resulting {@link CompileException}
+     *
+     * @return source unit
+     * @throws CompileException if the type of source is unsupported
+     * 
+     * @since 1.0
+     */
+    protected SourceUnit addToCompilationUnit(final CompilationUnit cu, final Source source, final Sources sources) {
+<span class="fc bfc" id="L278" title="All 2 branches covered.">        if (source instanceof TextSource) {</span>
+<span class="fc" id="L279">            final TextSource textSource = (TextSource)source;</span>
+<span class="fc" id="L280">            return cu.addSource(textSource.getId(), textSource.getText());</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">        } else if (source instanceof FileSource) {</span>
+<span class="fc" id="L282">            final FileSource fileSource = (FileSource)source;</span>
+<span class="fc" id="L283">            return cu.addSource(fileSource.getFile());</span>
+<span class="fc bfc" id="L284" title="All 2 branches covered.">        } else if (source instanceof UrlSource) {</span>
+<span class="fc" id="L285">            final UrlSource urlSource = (UrlSource)source;</span>
+<span class="fc" id="L286">            return cu.addSource(urlSource.getUrl());</span>
+        } else {
+<span class="fc" id="L288">            throw new CompileException(&quot;Don't know how to compile source &quot; + source + &quot;.&quot;, sources);</span>
+        }
+    }
+
+    /**
+     * gets the builder.
+     *
+     * @return builder
+     *
+     * @since 1.0
+     */
+    public Builder getBuilder() {
+<span class="fc" id="L300">        return builder;</span>
+    }
+
+    /**
+     * gets the parent class loader.
+     *
+     * @return parent class loader
+     * 
+     * @since 1.0
+     */
+    public ClassLoader getParent() {
+<span class="fc" id="L311">        return parent;</span>
+    }
+    
+    /**
+     * gets the compiler configuration.
+     *
+     * @return compiler configuration
+     * 
+     * @since 1.0
+     */
+    public CompilerConfiguration getCompilerConfiguration() {
+<span class="fc" id="L322">        return config;</span>
+    }
+    
+    
+    /**
+     * Builder for instances of {@link DefaultGroovyCompiler}.
+     * 
+     * @since 1.0
+     * 
+     * @author Alain Stalder
+     * @author Made in Switzerland.
+     */
+    public static class Builder {
+        
+        private boolean isCommitted;
+        
+        private ClassLoader parent;
+        private CompilerConfiguration compilerConfiguration;
+
+        /**
+         * constructor.
+         * 
+         * @since 1.0
+         */
+<span class="fc" id="L346">        public Builder() {</span>
+<span class="fc" id="L347">            isCommitted = false;</span>
+<span class="fc" id="L348">        }</span>
+
+        /**
+         * sets the parent class loader, default is the context class loader
+         * of the current thread.
+         *
+         * @param parent parent class loader
+         * 
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setParent(final ClassLoader parent) {
+<span class="fc" id="L361">            check();</span>
+<span class="fc" id="L362">            this.parent = parent;</span>
+<span class="fc" id="L363">            return this;</span>
+        }
+        
+        /**
+         * sets the compiler configuration,
+         * default is a new instance of {@link CompilerConfiguration} with default settings.
+         *
+         * @param compilerConfiguration compiler configuration
+         *
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setCompilerConfiguration(final CompilerConfiguration compilerConfiguration) {
+<span class="fc" id="L377">            check();</span>
+<span class="fc" id="L378">            this.compilerConfiguration = compilerConfiguration;</span>
+<span class="fc" id="L379">            return this;</span>
+        }
+
+        /**
+         * gets the parent class loader.
+         *
+         * @return parent class loader
+         * 
+         * @since 1.0
+         */
+        public ClassLoader getParent() {
+<span class="fc" id="L390">            return parent;</span>
+        }
+        
+        /**
+         * gets the compiler configuration.
+         *
+         * @return compiler configuration
+         * 
+         * @since 1.0
+         */
+        public CompilerConfiguration getCompilerConfiguration() {
+<span class="fc" id="L401">            return compilerConfiguration;</span>
+        }
+
+        private Builder commit() {
+<span class="fc bfc" id="L405" title="All 2 branches covered.">            if (!isCommitted) {</span>
+<span class="fc bfc" id="L406" title="All 2 branches covered.">                if (parent == null) {</span>
+<span class="fc" id="L407">                    parent = Thread.currentThread().getContextClassLoader();</span>
+                }
+<span class="fc bfc" id="L409" title="All 2 branches covered.">                if (compilerConfiguration == null) {</span>
+<span class="fc" id="L410">                    compilerConfiguration = new CompilerConfiguration();</span>
+                }
+<span class="fc" id="L412">                isCommitted = true;</span>
+            }
+<span class="fc" id="L414">            return this;</span>
+        }
+        
+        /**
+         * builds a new instance of {@link DefaultGroovyCompiler}.
+         *
+         * @return new instance
+         *
+         * @since 1.0
+         */
+        public DefaultGroovyCompiler build() {
+<span class="fc" id="L425">            commit();</span>
+<span class="fc" id="L426">            return new DefaultGroovyCompiler(this);</span>
+        }
+        
+        private void check() {
+<span class="fc bfc" id="L430" title="All 2 branches covered.">            if (isCommitted) {</span>
+<span class="fc" id="L431">                throw new IllegalStateException(&quot;Builder already used.&quot;);</span>
+            }
+<span class="fc" id="L433">        }</span>
+
+    }
+
+
+    // dummy compilation customizer as holder for GroovyClassloader,
+    // wraps GrapeEngine the first time an instance is created
+    static class GrapeCompilationCustomizer extends CompilationCustomizer {
+
+        final GroovyClassLoader runtimeLoader;
+
+        GrapeCompilationCustomizer(final GroovyClassLoader runtimeLoader) {
+<span class="fc" id="L445">            super(CompilePhase.INITIALIZATION);</span>
+<span class="fc" id="L446">            this.runtimeLoader = runtimeLoader;</span>
+            //GrengineGrapeEngine.wrap();
+<span class="fc" id="L448">        }</span>
+
+        static void enableGrape(final CompilerConfiguration config,
+                final GroovyClassLoader runtimeLoader) {
+<span class="fc" id="L452">            config.addCompilationCustomizers(new GrapeCompilationCustomizer(runtimeLoader));</span>
+<span class="fc" id="L453">        }</span>
+
+        @Override
+        public void call(SourceUnit source, GeneratorContext context, ClassNode classNode)
+                throws CompilationFailedException {
+<span class="fc" id="L458">        }</span>
+
+        // looks for a GrapeCompilationCustomizer in the given compiler config and,
+        // if found, returns a new instance of CompileTimeGroovyClassLoader
+        static GroovyClassLoader getLoaderIfConfigured(ClassLoader parent, CompilerConfiguration config) {
+<span class="fc" id="L463">            return config.getCompilationCustomizers().stream()</span>
+<span class="fc" id="L464">                    .filter(c -&gt; c instanceof GrapeCompilationCustomizer)</span>
+<span class="fc" id="L465">                    .findFirst()</span>
+<span class="fc" id="L466">                    .map(c -&gt; new CompileTimeGroovyClassLoader(</span>
+                            ((GrapeCompilationCustomizer)c).runtimeLoader, parent, config))
+<span class="fc" id="L468">                    .orElse(null);</span>
+        }
+
+    }
+
+    // wraps the runtime GroovyClassLoader
+    static class CompileTimeGroovyClassLoader extends GroovyClassLoader {
+
+        final GroovyClassLoader runtimeLoader;
+
+        CompileTimeGroovyClassLoader(GroovyClassLoader runtimeLoader, ClassLoader parent,
+                                     CompilerConfiguration config) {
+<span class="fc" id="L480">            super(parent, config);</span>
+<span class="fc" id="L481">            this.runtimeLoader = runtimeLoader;</span>
+<span class="fc" id="L482">        }</span>
+
+    }
+
+    // wrapper for GrapeEngine, based on inner details of Groovy sources
+    static class GrengineGrapeEngine implements GrapeEngine {
+
+        // arg keys
+        private static final String CALLEE_DEPTH_KEY = &quot;calleeDepth&quot;;
+        private static final String CLASS_LOADER_KEY = &quot;classLoader&quot;;
+
+        // the lock for calls to GrapeEngine methods
+        static volatile Object lock;
+
+        // default callee depth of (unwrapped) GrapeEngine instance;
+        // value has been 3 up to at least Groovy 4; since Groovy 3
+        // publicly declared as GrapeEngine.DEFAULT_CALLEE_DEPTH
+        static volatile int grapeInstanceDefaultCalleeDepth;
+
+        // the wrapped engine
+        final GrapeEngine innerEngine;
+
+        // constructor from engine to wrap
+<span class="fc" id="L505">        GrengineGrapeEngine(GrapeEngine innerEngine) {</span>
+<span class="fc" id="L506">            this.innerEngine = innerEngine;</span>
+<span class="fc" id="L507">        }</span>
+
+        // sets the engine instance in the Grape class (only once, idempotent)
+        static void wrap(final Object newLock) {
+<span class="fc" id="L511">            synchronized (GrengineGrapeEngine.class) {</span>
+
+                // already wrapped?
+<span class="fc bfc" id="L514" title="All 2 branches covered.">                if (lock != null) {</span>
+<span class="fc bfc" id="L515" title="All 2 branches covered.">                    if (lock == newLock) {</span>
+                        // allow same lock (idempotent)
+<span class="fc" id="L517">                        return;</span>
+                    } else {
+                        // disallow different lock
+<span class="fc" id="L520">                        throw new IllegalStateException(</span>
+                                &quot;Attempt to change lock for wrapped Grape class (unwrap first).&quot;);
+                    }
+                }
+
+                // verify preconditions
+<span class="fc" id="L526">                final Class&lt;?&gt; grapeIvyClass = Grape.getInstance().getClass();</span>
+<span class="fc bfc" id="L527" title="All 2 branches covered.">                if (!grapeIvyClass.getName().equals(&quot;groovy.grape.GrapeIvy&quot;)) {</span>
+<span class="fc" id="L528">                    throw new IllegalStateException(&quot;Unable to wrap GrapeEngine in Grape.class &quot; +</span>
+<span class="fc" id="L529">                            &quot;(current GrapeEngine is &quot; + grapeIvyClass.getName() +</span>
+                            &quot;, supported is groovy.grape.GrapeIvy).&quot;);
+                }
+
+                try {
+                    // Groovy 3 and later
+<span class="fc" id="L535">                    final Field field = GrapeEngine.class.getDeclaredField(&quot;DEFAULT_CALLEE_DEPTH&quot;);</span>
+<span class="fc" id="L536">                    grapeInstanceDefaultCalleeDepth = field.getInt(GrapeEngine.class);</span>
+<span class="nc" id="L537">                } catch (Throwable t) {</span>
+                    // earlier Groovy
+<span class="nc" id="L539">                    grapeInstanceDefaultCalleeDepth = 3;</span>
+<span class="fc" id="L540">                }</span>
+
+                // wrap
+<span class="fc" id="L543">                lock = newLock;</span>
+<span class="fc" id="L544">                synchronized (newLock) {</span>
+                    // set GrapeEngine instance in Grape class
+<span class="fc" id="L546">                    new Grape() {</span>
+                        void wrap() {
+<span class="fc" id="L548">                            Grape.instance = new GrengineGrapeEngine(Grape.getInstance());</span>
+<span class="fc" id="L549">                        }</span>
+<span class="fc" id="L550">                    }.wrap();</span>
+<span class="fc" id="L551">                }</span>
+<span class="fc" id="L552">            }</span>
+<span class="fc" id="L553">        }</span>
+
+        // sets the engine instance in the Grape class back to the GrapeIvy instance
+        static void unwrap() {
+<span class="fc" id="L557">            synchronized (GrengineGrapeEngine.class) {</span>
+                // not wrapped?
+<span class="fc bfc" id="L559" title="All 2 branches covered.">                if (lock == null) {</span>
+<span class="fc" id="L560">                    return;</span>
+                }
+                // unwrap
+<span class="fc" id="L563">                synchronized (lock) {</span>
+                    // set GrapeEngine instance in Grape class
+<span class="fc" id="L565">                    new Grape() {</span>
+                        void unwrap() {
+<span class="fc" id="L567">                            Grape.instance = ((GrengineGrapeEngine)Grape.getInstance()).innerEngine;</span>
+<span class="fc" id="L568">                        }</span>
+<span class="fc" id="L569">                    }.unwrap();</span>
+<span class="fc" id="L570">                }</span>
+<span class="fc" id="L571">                lock = null;</span>
+<span class="fc" id="L572">                grapeInstanceDefaultCalleeDepth = 0;</span>
+<span class="fc" id="L573">            }</span>
+<span class="fc" id="L574">        }</span>
+
+        @Override
+        public Object grab(final String endorsedModule) {
+<span class="fc" id="L578">            synchronized(lock) {</span>
+<span class="nc" id="L579">                return innerEngine.grab(endorsedModule);</span>
+            }
+        }
+
+        @Override
+        @SuppressWarnings({ &quot;rawtypes&quot;, &quot;unchecked&quot; })
+        public Object grab(final Map args) {
+<span class="fc" id="L586">            synchronized(lock) {</span>
+<span class="fc" id="L587">                adjustCalleeDepth(args);</span>
+                // apply grab also to runtime loader, if present
+<span class="fc" id="L589">                final Object obj = args.get(CLASS_LOADER_KEY);</span>
+<span class="fc bfc" id="L590" title="All 2 branches covered.">                if (obj instanceof CompileTimeGroovyClassLoader) {</span>
+<span class="fc" id="L591">                    final GroovyClassLoader runtimeLoader = ((CompileTimeGroovyClassLoader)obj).runtimeLoader;</span>
+<span class="fc bfc" id="L592" title="All 2 branches covered.">                    if (runtimeLoader != null) {</span>
+<span class="fc" id="L593">                        final Map args2 = new HashMap(args);</span>
+<span class="fc" id="L594">                        args2.put(CLASS_LOADER_KEY, runtimeLoader);</span>
+<span class="fc" id="L595">                        innerEngine.grab(args2);</span>
+                    }
+                }
+<span class="fc" id="L598">                return innerEngine.grab(args);</span>
+            }
+        }
+
+        @Override
+        @SuppressWarnings({ &quot;rawtypes&quot;, &quot;unchecked&quot; })
+        public Object grab(final Map args, final Map... dependencies) {
+<span class="fc" id="L605">            synchronized(lock) {</span>
+<span class="fc" id="L606">                adjustCalleeDepth(args);</span>
+                // apply grab also to runtime loader, if present
+<span class="fc" id="L608">                final Object obj = args.get(CLASS_LOADER_KEY);</span>
+<span class="fc bfc" id="L609" title="All 2 branches covered.">                if (obj instanceof CompileTimeGroovyClassLoader) {</span>
+<span class="fc" id="L610">                    final GroovyClassLoader runtimeLoader = ((CompileTimeGroovyClassLoader)obj).runtimeLoader;</span>
+<span class="fc bfc" id="L611" title="All 2 branches covered.">                    if (runtimeLoader != null) {</span>
+<span class="fc" id="L612">                        final Map args2 = new HashMap(args);</span>
+<span class="fc" id="L613">                        args2.put(CLASS_LOADER_KEY, runtimeLoader);</span>
+<span class="fc" id="L614">                        innerEngine.grab(args2, dependencies);</span>
+                    }
+                }
+<span class="fc" id="L617">                return innerEngine.grab(args, dependencies);</span>
+            }
+        }
+
+        @Override
+        public Map&lt;String, Map&lt;String, List&lt;String&gt;&gt;&gt; enumerateGrapes() {
+<span class="fc" id="L623">            synchronized(lock) {</span>
+<span class="fc" id="L624">                return innerEngine.enumerateGrapes();</span>
+            }
+        }
+
+        @Override
+        @SuppressWarnings({ &quot;rawtypes&quot;, &quot;unchecked&quot; })
+        public URI[] resolve(final Map args, final Map... dependencies) {
+<span class="fc" id="L631">            synchronized(lock) {</span>
+<span class="fc" id="L632">                adjustCalleeDepth(args);</span>
+<span class="fc" id="L633">                return innerEngine.resolve(args, dependencies);</span>
+            }
+        }
+
+        @Override
+        @SuppressWarnings(&quot;rawtypes&quot;)
+        public URI[] resolve(final Map args, final List dependenciesInfo, final Map... dependencies) {
+<span class="fc" id="L640">            synchronized(lock) {</span>
+<span class="fc" id="L641">                return innerEngine.resolve(args, dependenciesInfo, dependencies);</span>
+            }
+        }
+
+        @Override
+        @SuppressWarnings(&quot;rawtypes&quot;)
+        public Map[] listDependencies(final ClassLoader classLoader) {
+<span class="fc" id="L648">            synchronized(lock) {</span>
+<span class="fc" id="L649">                return innerEngine.listDependencies(classLoader);</span>
+            }
+        }
+
+        @Override
+        public void addResolver(final Map&lt;String, Object&gt; args) {
+<span class="fc" id="L655">            synchronized(lock) {</span>
+<span class="fc" id="L656">                innerEngine.addResolver(args);</span>
+<span class="fc" id="L657">            }</span>
+<span class="fc" id="L658">        }</span>
+
+        private static void adjustCalleeDepth(Map&lt;String, Object&gt; args) {
+<span class="fc" id="L661">            Object calleeDepthObj = args.get(CALLEE_DEPTH_KEY);</span>
+<span class="fc bfc" id="L662" title="All 2 branches covered.">            int calleeDepth = (calleeDepthObj == null) ? grapeInstanceDefaultCalleeDepth : (int)calleeDepthObj;</span>
+<span class="fc" id="L663">            args.put(CALLEE_DEPTH_KEY, calleeDepth + 1);</span>
+<span class="fc" id="L664">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

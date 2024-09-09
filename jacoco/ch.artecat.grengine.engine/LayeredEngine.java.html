@@ -1,0 +1,607 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LayeredEngine.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.artecat.grengine.engine</a> &gt; <span class="el_source">LayeredEngine.java</span></div><h1>LayeredEngine.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.artecat.grengine.engine;
+
+import ch.artecat.grengine.code.ClassNameConflictAnalyzer;
+import ch.artecat.grengine.code.Code;
+import ch.artecat.grengine.except.ClassNameConflictException;
+import ch.artecat.grengine.except.LoadException;
+import ch.artecat.grengine.load.ClassReleaser;
+import ch.artecat.grengine.load.DefaultClassReleaser;
+import ch.artecat.grengine.load.DefaultTopCodeCacheFactory;
+import ch.artecat.grengine.load.LayeredClassLoader;
+import ch.artecat.grengine.load.LoadMode;
+import ch.artecat.grengine.load.SourceClassLoader;
+import ch.artecat.grengine.load.TopCodeCache;
+import ch.artecat.grengine.load.TopCodeCacheFactory;
+import ch.artecat.grengine.source.Source;
+import ch.artecat.grengine.sources.Sources;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static java.util.Objects.requireNonNull;
+
+
+/**
+ * Engine based on instances of {@link LayeredClassLoader}.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class LayeredEngine implements Engine {
+    
+    private final Builder builder;
+
+<span class="fc" id="L60">    private final EngineId engineId = new EngineId();</span>
+    
+    private final boolean isWithTopCodeCache;
+    private final TopCodeCache topCodeCache;
+    
+    // default loader (number 0)
+    private final Loader loader;
+    // next loader number to use
+    private long nextLoaderNumber;
+    // map of all attached loaders created by this engine,
+    // except that loaders that are no longer referenced outside this map
+    // can be garbage collected by the VM, since this is a WeakHashMap
+    // (note that the map value is not used at all and does not matter
+    // for garbage collection of map entries, only the map key does)
+<span class="fc" id="L74">    private final Map&lt;Loader,EngineId&gt; attachedLoaders = new WeakHashMap&lt;&gt;();</span>
+    // map of all detached loaders created by this engine,
+    // only needed for closing classes
+<span class="fc" id="L77">    private final Map&lt;Loader,EngineId&gt; detachedLoaders = new WeakHashMap&lt;&gt;();</span>
+    
+    private final Lock read;
+    private final Lock write;
+    
+    /**
+     * constructor from builder.
+     *
+     * @param builder builder
+     * 
+     * @since 1.0
+     */
+<span class="fc" id="L89">    protected LayeredEngine(final Builder builder) {</span>
+<span class="fc" id="L90">        this.builder = builder.commit();</span>
+        
+<span class="fc" id="L92">        isWithTopCodeCache = builder.isWithTopCodeCache();</span>
+<span class="fc bfc" id="L93" title="All 2 branches covered.">        if (isWithTopCodeCache) {</span>
+<span class="fc" id="L94">            topCodeCache = builder.getTopCodeCacheFactory().newTopCodeCache(null);</span>
+        } else {
+<span class="fc" id="L96">            topCodeCache = null;</span>
+        }
+<span class="fc" id="L98">        final LayeredClassLoader layeredClassLoader = newLayeredClassLoaderFromCodeLayers(new LinkedList&lt;&gt;());</span>
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (isWithTopCodeCache) {</span>
+<span class="fc" id="L100">            topCodeCache.setParent(layeredClassLoader);</span>
+        }
+        
+<span class="fc" id="L103">        nextLoaderNumber = 0;</span>
+<span class="fc" id="L104">        loader = new Loader(engineId, nextLoaderNumber++, true, builder.getClassReleaser(), layeredClassLoader);</span>
+<span class="fc" id="L105">        attachedLoaders.put(loader, engineId);</span>
+
+<span class="fc" id="L107">        final ReadWriteLock lock = new ReentrantReadWriteLock();</span>
+<span class="fc" id="L108">        read = lock.readLock();</span>
+<span class="fc" id="L109">        write = lock.writeLock();</span>
+<span class="fc" id="L110">    }</span>
+    
+    private LayeredClassLoader newLayeredClassLoaderFromCodeLayers(final List&lt;Code&gt; codeLayers) {
+<span class="fc" id="L113">        return new LayeredClassLoader.Builder()</span>
+<span class="fc" id="L114">                .setParent(builder.getParent())</span>
+<span class="fc" id="L115">                .setLoadMode(builder.getLoadMode())</span>
+<span class="fc" id="L116">                .setCodeLayers(codeLayers)</span>
+<span class="fc" id="L117">                .setWithTopCodeCache(isWithTopCodeCache, topCodeCache)</span>
+<span class="fc" id="L118">                .setTopLoadMode(builder.getTopLoadMode())</span>
+<span class="fc" id="L119">                .buildFromCodeLayers();</span>
+    }
+    
+    private LayeredClassLoader newLayeredClassLoaderFromSourceSetLayers(final List&lt;Sources&gt; sourcesLayers) {
+<span class="fc" id="L123">        return new LayeredClassLoader.Builder()</span>
+<span class="fc" id="L124">                .setParent(builder.getParent())</span>
+<span class="fc" id="L125">                .setLoadMode(builder.getLoadMode())</span>
+<span class="fc" id="L126">                .setSourcesLayers(sourcesLayers)</span>
+<span class="fc" id="L127">                .setWithTopCodeCache(isWithTopCodeCache, topCodeCache)</span>
+<span class="fc" id="L128">                .setTopLoadMode(builder.getTopLoadMode())</span>
+<span class="fc" id="L129">                .buildFromSourcesLayers();</span>
+    }
+
+    @Override
+    public Loader getLoader() {
+<span class="fc" id="L134">        return loader;</span>
+    }
+    
+    /**
+     * creates and gets a new attached loader, backed by the same bytecode
+     * as all other shared loaders created by this engine,
+     * with a top code cache shared with all other attached loaders
+     * of this engine and automatically updated if code layers are set.
+     * 
+     * @since 1.0
+     */
+    @Override
+    public Loader newAttachedLoader() {
+<span class="fc" id="L147">        write.lock();</span>
+        try {
+<span class="fc" id="L149">            final Loader newLoader = new Loader(engineId, nextLoaderNumber++, true,</span>
+<span class="fc" id="L150">                    builder.getClassReleaser(), loader.getSourceClassLoader(engineId).clone());</span>
+<span class="fc" id="L151">            attachedLoaders.put(newLoader, engineId);</span>
+<span class="fc" id="L152">            return newLoader;</span>
+        } finally {
+<span class="fc" id="L154">            write.unlock();</span>
+        }
+    }
+    
+    /**
+     * creates and gets a new detached loader, backed initially by the same
+     * bytecode as all attached loaders created by this engine (code layers
+     * and top code cache), but not updated if code layers are set
+     * and with a separate top code cache instance.
+     * &lt;p&gt;
+     * For example, a web application might create a detached loader for
+     * each new HTTP session: A new loader in order to separate static
+     * variables of scripts between sessions (security feature); a detached
+     * loader in order to keep code layers constant during the lifetime
+     * of the session (consistent behavior of Groovy script calls).
+     * 
+     * @since 1.0
+     */
+    @Override
+    public Loader newDetachedLoader() {
+<span class="fc" id="L174">        write.lock();</span>
+        try {
+<span class="fc" id="L176">            final LayeredClassLoader layeredClassLoader = ((LayeredClassLoader)loader.getSourceClassLoader(engineId));</span>
+<span class="fc" id="L177">            final Loader newLoader = new Loader(engineId, nextLoaderNumber++, false,</span>
+<span class="fc" id="L178">                    builder.getClassReleaser(), layeredClassLoader.cloneWithSeparateTopCodeCache());</span>
+<span class="fc" id="L179">            detachedLoaders.put(newLoader, engineId);</span>
+<span class="fc" id="L180">            return newLoader;</span>
+        } finally {
+<span class="fc" id="L182">            write.unlock();</span>
+        }
+    }
+    
+    private SourceClassLoader getSourceClassLoader(final Loader loader) {
+<span class="fc" id="L187">        read.lock();</span>
+        try {
+<span class="fc" id="L189">            return loader.getSourceClassLoader(engineId);</span>
+        } finally {
+<span class="fc" id="L191">            read.unlock();</span>
+        }
+        
+    }
+    
+    @Override
+    public Class&lt;?&gt; loadMainClass(final Loader loader, final Source source) {
+<span class="fc" id="L198">        return getSourceClassLoader(loader).loadMainClass(source);</span>
+    }
+    
+    @Override
+    public Class&lt;?&gt; loadClass(final Loader loader, final Source source, final String name) {
+<span class="fc" id="L203">        return getSourceClassLoader(loader).loadClass(source, name);</span>
+    }
+    
+    @Override
+    public Class&lt;?&gt; loadClass(final Loader loader, final String name) {
+        try {
+<span class="fc" id="L209">            return getSourceClassLoader(loader).loadClass(name);</span>
+<span class="fc" id="L210">        } catch (Throwable t) {</span>
+<span class="fc" id="L211">            throw new LoadException(&quot;Could not load class '&quot; + name + &quot;'.&quot;, t);</span>
+        }
+    }
+            
+    @Override
+    public void setCodeLayers(final List&lt;Code&gt; codeLayers) {
+<span class="fc" id="L217">        requireNonNull(codeLayers, &quot;Code layers are null.&quot;);</span>
+
+<span class="fc" id="L219">        int nConflicts = 0;</span>
+<span class="fc" id="L220">        Map&lt;String,List&lt;Code&gt;&gt; sameClassNamesInMultipleCodeLayersMap = null;</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">        if (!builder.isAllowSameClassNamesInMultipleCodeLayers()) {</span>
+<span class="fc" id="L222">            sameClassNamesInMultipleCodeLayersMap =</span>
+<span class="fc" id="L223">                    ClassNameConflictAnalyzer.getSameClassNamesInMultipleCodeLayersMap(codeLayers);</span>
+<span class="fc" id="L224">            nConflicts += sameClassNamesInMultipleCodeLayersMap.size();</span>
+        }
+<span class="fc" id="L226">        Map&lt;String,List&lt;Code&gt;&gt; sameClassNamesInParentAndCodeLayersMap = null;</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">        if (!builder.isAllowSameClassNamesInParentAndCodeLayers()) {</span>
+<span class="fc" id="L228">            sameClassNamesInParentAndCodeLayersMap =</span>
+<span class="fc" id="L229">                    ClassNameConflictAnalyzer.getSameClassNamesInParentAndCodeLayersMap(builder.getParent(), codeLayers);</span>
+<span class="fc" id="L230">            nConflicts += sameClassNamesInParentAndCodeLayersMap.size();</span>
+        }
+<span class="fc bfc" id="L232" title="All 2 branches covered.">        if (nConflicts &gt; 0) {</span>
+<span class="fc" id="L233">            throw new ClassNameConflictException(&quot;Found &quot; + nConflicts + &quot; class name conflict(s).&quot;,</span>
+                    sameClassNamesInMultipleCodeLayersMap, sameClassNamesInParentAndCodeLayersMap);
+        }
+        
+<span class="fc" id="L237">        write.lock();</span>
+        try {
+<span class="fc" id="L239">            final Map&lt;Loader,EngineId&gt; attachedLoadersNonWeak = new HashMap&lt;&gt;(attachedLoaders);</span>
+<span class="fc" id="L240">            attachedLoadersNonWeak.keySet().forEach(loader -&gt;</span>
+<span class="fc" id="L241">                    loader.setSourceClassLoader(engineId, newLayeredClassLoaderFromCodeLayers(codeLayers)</span>
+            ));
+<span class="fc bfc" id="L243" title="All 2 branches covered.">            if (isWithTopCodeCache) {</span>
+<span class="fc" id="L244">                topCodeCache.setParent(loader.getSourceClassLoader(engineId));</span>
+            }
+        } finally {
+<span class="fc" id="L247">            write.unlock();</span>
+        }
+<span class="fc" id="L249">    }</span>
+    
+    @Override
+    public void setCodeLayersBySource(final List&lt;Sources&gt; sourcesLayers) {
+<span class="fc" id="L253">        requireNonNull(sourcesLayers, &quot;Sources layers are null.&quot;);</span>
+<span class="fc" id="L254">        setCodeLayers(newLayeredClassLoaderFromSourceSetLayers(sourcesLayers).getCodeLayers());</span>
+<span class="fc" id="L255">    }</span>
+
+    @Override
+    public void close() {
+<span class="fc" id="L259">        write.lock();</span>
+        try {
+<span class="fc" id="L261">            final Set&lt;Loader&gt; loaders = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L262">            loaders.addAll(attachedLoaders.keySet());</span>
+<span class="fc" id="L263">            loaders.addAll(detachedLoaders.keySet());</span>
+<span class="fc" id="L264">            loaders.forEach(Loader::close);</span>
+        } finally {
+<span class="fc" id="L266">            write.unlock();</span>
+        }
+<span class="fc" id="L268">    }</span>
+
+    @Override
+    public ClassLoader asClassLoader(final Loader loader) {
+<span class="fc" id="L272">        return new LoaderBasedClassLoader(loader);</span>
+    }
+    
+    // class loader based on a loader of this engine
+    private class LoaderBasedClassLoader extends ClassLoader {
+
+        private final Loader loader;
+
+<span class="fc" id="L280">        private LoaderBasedClassLoader(final Loader loader) {</span>
+<span class="fc" id="L281">            super(builder.getParent());</span>
+<span class="fc" id="L282">            requireNonNull(loader, &quot;Loader is null.&quot;);</span>
+            // verify that engine ID matches
+<span class="fc" id="L284">            loader.getSourceClassLoader(engineId);</span>
+<span class="fc" id="L285">            this.loader = loader;</span>
+<span class="fc" id="L286">        }</span>
+
+        @Override
+        protected Class&lt;?&gt; findClass(final String name) throws ClassNotFoundException {
+<span class="fc" id="L290">            return loader.getSourceClassLoader(engineId).loadClass(name);</span>
+        }
+
+        @Override
+        protected Class&lt;?&gt; loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
+<span class="fc" id="L295">            return loader.getSourceClassLoader(engineId).loadClass(name);</span>
+        }
+
+    }
+
+    /**
+     * gets the builder.
+     *
+     * @return builder
+     *
+     * @since 1.0
+     */
+    public Builder getBuilder() {
+<span class="fc" id="L308">        return builder;</span>
+    }
+
+    /**
+     * Builder for instances of {@link LayeredEngine}.
+     * 
+     * @since 1.0
+     * 
+     * @author Alain Stalder
+     * @author Made in Switzerland.
+     */
+    public static class Builder {
+        
+        private boolean isCommitted;
+        
+        private ClassLoader parent;
+        private LoadMode loadMode;
+        
+<span class="fc" id="L326">        private boolean isWithTopCodeCache = true;</span>
+        private TopCodeCacheFactory topCodeCacheFactory;  
+        private LoadMode topLoadMode;
+
+        private ClassReleaser classReleaser;
+        
+<span class="fc" id="L332">        private boolean allowSameClassNamesInMultipleCodeLayers = true;</span>
+<span class="fc" id="L333">        private boolean allowSameClassNamesInParentAndCodeLayers = true;</span>
+        
+        /**
+         * constructor.
+         * 
+         * @since 1.0
+         */
+<span class="fc" id="L340">        public Builder() { isCommitted = false; }</span>
+
+        /**
+         * sets the parent class loader, default is the context class loader
+         * of the current thread.
+         *
+         * @param parent parent class loader
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setParent(final ClassLoader parent) {
+<span class="fc" id="L354">            check();</span>
+<span class="fc" id="L355">            this.parent = parent;</span>
+<span class="fc" id="L356">            return this;</span>
+        }
+        
+        /**
+         * sets the load mode for the (static) code layers, default is &quot;current first&quot;.
+         *
+         * @param loadMode load mode for the (static) code layers
+         *
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setLoadMode(final LoadMode loadMode) {
+<span class="fc" id="L370">            check();</span>
+<span class="fc" id="L371">            this.loadMode = loadMode;</span>
+<span class="fc" id="L372">            return this;</span>
+        }
+        
+        /**
+         * sets whether to use the a top code cache or not,
+         * default is true.
+         * &lt;p&gt;
+         * Note that the default is the opposite in the {@link LayeredClassLoader}.
+         *
+         * @param isWithTopCodeCache whether to use the a top code cache or not
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setWithTopCodeCache(final boolean isWithTopCodeCache) {
+<span class="fc" id="L389">            check();</span>
+<span class="fc" id="L390">            this.isWithTopCodeCache = isWithTopCodeCache;</span>
+<span class="fc" id="L391">            return this;</span>
+        }
+
+        /**
+         * sets the top code cache factory,
+         * default is a new instance of {@link DefaultTopCodeCacheFactory} with default settings.
+         *
+         * @param topCodeCacheFactory top code cache factory
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setTopCodeCacheFactory(final TopCodeCacheFactory topCodeCacheFactory) {
+<span class="fc" id="L406">            check();</span>
+<span class="fc" id="L407">            this.topCodeCacheFactory = topCodeCacheFactory;</span>
+<span class="fc" id="L408">            return this;</span>
+        }
+
+        /**
+         * sets the load mode for the top code cache, default is &quot;parent first&quot;.
+         *
+         * @param topLoadMode load mode for the top code cache
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setTopLoadMode(final LoadMode topLoadMode) {
+<span class="fc" id="L422">            check();</span>
+<span class="fc" id="L423">            this.topLoadMode = topLoadMode;</span>
+<span class="fc" id="L424">            return this;</span>
+        }
+
+        /**
+         * sets the class releaser, default is the {@link DefaultClassReleaser} singleton instance.
+         *
+         * @param classReleaser class releaser
+         *
+         * @return this, for chaining calls
+         *
+         * @since 1.1
+         */
+        public Builder setClassReleaser(final ClassReleaser classReleaser) {
+<span class="fc" id="L437">            check();</span>
+<span class="fc" id="L438">            this.classReleaser = classReleaser;</span>
+<span class="fc" id="L439">            return this;</span>
+        }
+        
+        /**
+         * sets whether to allow the same class names in multiple code layers, default is true.
+         *
+         * @param allowSameClassNamesInMultipleCodeLayers
+         *        whether to allow the same class names in multiple code layers
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setAllowSameClassNamesInMultipleCodeLayers(
+                final boolean allowSameClassNamesInMultipleCodeLayers) {
+<span class="fc" id="L454">            check();</span>
+<span class="fc" id="L455">            this.allowSameClassNamesInMultipleCodeLayers = allowSameClassNamesInMultipleCodeLayers;</span>
+<span class="fc" id="L456">            return this;</span>
+        }
+        
+        /**
+         * sets whether to allow the same class names in code layers and parent class loader, default is true.
+         *
+         * @param allowSameClassNamesInParentAndCodeLayers
+         *        whether to allow the same class names in code layers and parent class loader
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setAllowSameClassNamesInParentAndCodeLayers(
+                final boolean allowSameClassNamesInParentAndCodeLayers) {
+<span class="fc" id="L471">            check();</span>
+<span class="fc" id="L472">            this.allowSameClassNamesInParentAndCodeLayers = allowSameClassNamesInParentAndCodeLayers;</span>
+<span class="fc" id="L473">            return this;</span>
+        }
+
+        /**
+         * gets the parent class loader.
+         *
+         * @return parent class loader
+         * 
+         * @since 1.0
+         */
+        public ClassLoader getParent() {
+<span class="fc" id="L484">            return parent;</span>
+        }
+        
+        /**
+         * gets the load mode for the (static) code layers.
+         *
+         * @return load mode for the (static) code layers
+         * 
+         * @since 1.0
+         */
+        public LoadMode getLoadMode() {
+<span class="fc" id="L495">            return loadMode;</span>
+        }
+        
+        /**
+         * gets whether to use the a top code cache or not.
+         *
+         * @return whether to use the a top code cache or not
+         * 
+         * @since 1.0
+         */
+        public boolean isWithTopCodeCache() {
+<span class="fc" id="L506">            return isWithTopCodeCache;</span>
+        }
+        
+        /**
+         * gets the load mode for the top code cache.
+         *
+         * @return load mode for the top code cache
+         * 
+         * @since 1.0
+         */
+        public LoadMode getTopLoadMode() {
+<span class="fc" id="L517">            return topLoadMode;</span>
+        }
+
+        /**
+         * gets the class releaser.
+         *
+         * @return class releaser
+         *
+         * @since 1.1
+         */
+        public ClassReleaser getClassReleaser() {
+<span class="fc" id="L528">            return classReleaser;</span>
+        }
+
+        /**
+         * gets the top code cache factory.
+         *
+         * @return top code cache factory
+         * 
+         * @since 1.0
+         */
+        public TopCodeCacheFactory getTopCodeCacheFactory() {
+<span class="fc" id="L539">            return topCodeCacheFactory;</span>
+        }
+        
+        /**
+         * gets whether to allow the same class names in multiple code layers.
+         *
+         * @return whether to allow the same class names in multiple code layers
+         * 
+         * @since 1.0
+         */
+        public boolean isAllowSameClassNamesInMultipleCodeLayers() {
+<span class="fc" id="L550">            return allowSameClassNamesInMultipleCodeLayers;</span>
+        }
+
+        /**
+         * gets whether to allow the same class names in code layers and parent class loader.
+         *
+         * @return whether to allow the same class names in code layers and parent class loader
+         * 
+         * @since 1.0
+         */
+        public boolean isAllowSameClassNamesInParentAndCodeLayers() {
+<span class="fc" id="L561">            return allowSameClassNamesInParentAndCodeLayers;</span>
+        }
+        
+        private Builder commit() {
+<span class="fc bfc" id="L565" title="All 2 branches covered.">            if (!isCommitted) {</span>
+<span class="fc bfc" id="L566" title="All 2 branches covered.">                if (parent == null) {</span>
+<span class="fc" id="L567">                    parent = Thread.currentThread().getContextClassLoader();</span>
+                }
+<span class="fc bfc" id="L569" title="All 2 branches covered.">                if (loadMode == null) {</span>
+<span class="fc" id="L570">                    loadMode = LoadMode.CURRENT_FIRST;</span>
+                }
+<span class="fc bfc" id="L572" title="All 2 branches covered.">                if (topLoadMode == null) {</span>
+<span class="fc" id="L573">                    topLoadMode = LoadMode.PARENT_FIRST;</span>
+                }
+<span class="fc bfc" id="L575" title="All 2 branches covered.">                if (topCodeCacheFactory == null) {</span>
+<span class="fc" id="L576">                    topCodeCacheFactory = new DefaultTopCodeCacheFactory.Builder().build();</span>
+                }
+<span class="fc bfc" id="L578" title="All 2 branches covered.">                if (classReleaser == null) {</span>
+<span class="fc" id="L579">                    classReleaser = DefaultClassReleaser.getInstance();</span>
+                }
+<span class="fc" id="L581">                isCommitted = true;</span>
+            }
+<span class="fc" id="L583">            return this;</span>
+        }
+        
+        /**
+         * builds a new instance of {@link LayeredEngine}.
+         *
+         * @return new instance
+         * 
+         * @since 1.0
+         */
+        public LayeredEngine build() {
+<span class="fc" id="L594">            commit();</span>
+<span class="fc" id="L595">            return new LayeredEngine(this);</span>
+        }
+                
+        private void check() {
+<span class="fc bfc" id="L599" title="All 2 branches covered.">            if (isCommitted) {</span>
+<span class="fc" id="L600">                throw new IllegalStateException(&quot;Builder already used.&quot;);</span>
+            }
+<span class="fc" id="L602">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

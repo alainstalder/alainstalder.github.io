@@ -1,0 +1,679 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LayeredClassLoader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.artecat.grengine.load</a> &gt; <span class="el_source">LayeredClassLoader.java</span></div><h1>LayeredClassLoader.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.artecat.grengine.load;
+
+import ch.artecat.grengine.code.Code;
+import ch.artecat.grengine.code.CompilerFactory;
+import ch.artecat.grengine.code.SingleSourceCode;
+import ch.artecat.grengine.engine.LayeredEngine;
+import ch.artecat.grengine.except.CompileException;
+import ch.artecat.grengine.except.LoadException;
+import ch.artecat.grengine.source.Source;
+import ch.artecat.grengine.sources.Sources;
+
+import java.lang.ref.WeakReference;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+
+/**
+ * {@link SourceClassLoader} based on layers of {@link BytecodeClassLoader}
+ * plus optionally a {@link TopCodeCache}.
+ * &lt;p&gt;
+ * Depending on load modes, classes are first searched in the parent class
+ * loader, the individual layers or optionally created on-the-fly from source
+ * as part of the top code cache.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class LayeredClassLoader extends SourceClassLoader {
+    
+    private final Builder builder;
+    
+    private List&lt;Code&gt; codeLayers;
+    // the class loader on top, without top code cache
+    private ClassLoader staticTopLoader;
+
+    private boolean isWithTopCodeCache;
+    private LoadMode topLoadMode;
+    private TopCodeCache topCodeCache;
+    private Map&lt;Source,BytecodeClassLoader&gt; topLoaders;
+
+<span class="fc" id="L64">    private final Queue&lt;WeakReference&lt;BytecodeClassLoader&gt;&gt; classLoaderQueue =</span>
+            new ConcurrentLinkedQueue&lt;&gt;();
+
+    /**
+     * constructor from builder, based on already compiled code layers.
+     *
+     * @param builder builder
+     * 
+     * @since 1.0
+     */
+    protected LayeredClassLoader(final Builder builder) {
+<span class="fc" id="L75">        super(builder.getParent());</span>
+<span class="fc" id="L76">        this.builder = builder.commit();</span>
+<span class="fc" id="L77">        fromCodeLayers();</span>
+<span class="fc" id="L78">    }</span>
+    
+    /**
+     * constructor from builder, based on sources to compile to code layers
+     * or on already compiled code layers.
+     *
+     * @param builder builder
+     * @param fromSourcesLayers if based on sources to compile to code layers
+     *                          or on already compiled code layers
+     *
+     * @throws CompileException if based on sources and compiling the sources layers failed
+     * 
+     * @since 1.0
+     */
+    protected LayeredClassLoader(final Builder builder, final boolean fromSourcesLayers) {
+<span class="fc" id="L93">        super(builder.getParent());</span>
+<span class="fc" id="L94">        this.builder = builder.commit();</span>
+<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (fromSourcesLayers) {</span>
+<span class="fc" id="L96">            fromSourcesLayers();</span>
+        } else {
+<span class="fc" id="L98">            fromCodeLayers();</span>
+        }
+<span class="fc" id="L100">    }</span>
+    
+    private void fromCodeLayers() {
+<span class="fc" id="L103">        createLoadersFromCodeLayers();</span>
+<span class="fc" id="L104">        initTopCodeCache();</span>
+<span class="fc" id="L105">    }</span>
+    
+    private void fromSourcesLayers() {
+<span class="fc" id="L108">        createLoadersFromSourcesLayers();</span>
+<span class="fc" id="L109">        initTopCodeCache();</span>
+<span class="fc" id="L110">    }</span>
+    
+    private void createLoadersFromCodeLayers() {
+<span class="fc" id="L113">        staticTopLoader = builder.getParent();</span>
+<span class="fc" id="L114">        codeLayers = builder.getCodeLayers();</span>
+<span class="fc" id="L115">        codeLayers.forEach(code -&gt; {</span>
+<span class="fc" id="L116">            staticTopLoader = new BytecodeClassLoader(staticTopLoader, builder.getLoadMode(), code);</span>
+<span class="fc" id="L117">            classLoaderQueue.add(new WeakReference&lt;&gt;((BytecodeClassLoader) staticTopLoader));</span>
+<span class="fc" id="L118">        });</span>
+<span class="fc" id="L119">    }</span>
+    
+    private void createLoadersFromSourcesLayers() {
+<span class="fc" id="L122">        staticTopLoader = builder.getParent();</span>
+<span class="fc" id="L123">        final List&lt;Sources&gt; sourcesLayers = builder.getSourcesLayers();</span>
+<span class="fc" id="L124">        codeLayers = new LinkedList&lt;&gt;();</span>
+<span class="fc" id="L125">        sourcesLayers.forEach(sources -&gt;  {</span>
+<span class="fc" id="L126">            final CompilerFactory compilerFactory = sources.getCompilerFactory();</span>
+<span class="fc" id="L127">            final Code code = compilerFactory.newCompiler(staticTopLoader).compile(sources);</span>
+<span class="fc" id="L128">            codeLayers.add(code);</span>
+<span class="fc" id="L129">            staticTopLoader = new BytecodeClassLoader(staticTopLoader, builder.getLoadMode(), code);</span>
+<span class="fc" id="L130">            classLoaderQueue.add(new WeakReference&lt;&gt;((BytecodeClassLoader) staticTopLoader));</span>
+<span class="fc" id="L131">        });</span>
+        // set code layers in builder so that the builder
+        // can be reused without recompiling (e.g. for clone())
+<span class="fc" id="L134">        builder.setCodeLayersAfterCreating(codeLayers);</span>
+<span class="fc" id="L135">    }</span>
+    
+    private void initTopCodeCache() {
+<span class="fc" id="L138">        isWithTopCodeCache = builder.isWithTopCodeCache();</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">        if (isWithTopCodeCache) {</span>
+<span class="fc" id="L140">            topLoadMode = builder.getTopLoadMode();</span>
+<span class="fc" id="L141">            topCodeCache = builder.getTopCodeCache();</span>
+<span class="fc" id="L142">            topLoaders = new ConcurrentHashMap&lt;&gt;();</span>
+        } else {
+<span class="fc" id="L144">            topLoadMode = null;</span>
+<span class="fc" id="L145">            topCodeCache = null;</span>
+<span class="fc" id="L146">            topLoaders = null;</span>
+        }
+<span class="fc" id="L148">    }</span>
+
+        
+    @Override
+    protected Class&lt;?&gt; loadClass(final String name, boolean resolve) throws ClassNotFoundException {
+        // can only be done statically...
+<span class="fc" id="L154">        final Class&lt;?&gt; clazz = staticTopLoader.loadClass(name);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        if (resolve) {</span>
+<span class="fc" id="L156">            resolveClass(clazz);</span>
+        }
+<span class="fc" id="L158">        return clazz;</span>
+    }
+
+    /**
+     * loads the main class of the given source.
+     * &lt;p&gt;
+     * First searches for the source, then loads the main class that resulted
+     * from compiling the source.
+     * &lt;p&gt;
+     * Specifically for {@link LayeredClassLoader}, the source is eventually
+     * compiled on-the-fly from the given source if top code cache is on.
+     * First, the class corresponding to the source is searched in static layers
+     * using {@link LayeredClassLoader#findBytecodeClassLoaderBySource(Source)}.
+     * If not found, uses the source of the top code cache (compiling it, if necessary).
+     * If found, uses the source of the top code cache (compiling it, if necessary)
+     * if the source had changed since compiled in static layers (or top code cache)
+     * and if top load mode is current first.
+     *
+     * @param source source
+     *
+     * @return main class
+     * @throws CompileException if compilation was necessary to load the class and failed
+     * @throws LoadException if loading failed, including if the class was not found
+     *
+     * @since 1.0
+     */
+    @Override
+    public Class&lt;?&gt; loadMainClass(final Source source) {
+        
+        // loading from code layers only?
+<span class="fc bfc" id="L188" title="All 2 branches covered.">        if (!isWithTopCodeCache) {</span>
+<span class="fc" id="L189">            return BytecodeClassLoader.loadMainClassBySource(staticTopLoader, source);</span>
+        }
+        
+        // code layers version available and is up-to-date or parent first?
+<span class="fc" id="L193">        final BytecodeClassLoader staticLoader = findBytecodeClassLoaderBySource(source);</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (staticLoader != null) {</span>
+<span class="fc" id="L195">            final long lastModifiedAtCompileTime = staticLoader.getCode().getLastModifiedAtCompileTime(source);</span>
+<span class="fc bfc" id="L196" title="All 4 branches covered.">            if (topLoadMode == LoadMode.PARENT_FIRST || lastModifiedAtCompileTime == source.getLastModified()) {</span>
+<span class="fc" id="L197">                return BytecodeClassLoader.loadMainClassBySource(staticTopLoader, source);</span>
+            }
+        }
+
+        // load from top code cache
+<span class="fc" id="L202">        return getTopLoader(source).loadMainClass(source);</span>
+    }
+
+    /**
+     * loads a class with the given name and from the given source.
+     * &lt;p&gt;
+     * First searches for the source, only then for the class with given name
+     * as part of the classes that resulted from compiling the source.
+     * &lt;p&gt;
+     * Specifically for {@link LayeredClassLoader}, the source is eventually
+     * compiled on-the-fly from the given source if top code cache is on.
+     * First, the class corresponding to the source is searched in static layers
+     * using {@link LayeredClassLoader#findBytecodeClassLoaderBySource(Source)}.
+     * If not found, uses the source of the top code cache (compiling it, if necessary).
+     * If found, uses the source of the top code cache (compiling it, if necessary)
+     * if the source had changed since compiled in static layers (or top code cache)
+     * and if top load mode is current first.
+     *
+     * @param source source
+     * @param name class name
+     *
+     * @return class
+     * @throws CompileException if compilation was necessary to load the class and failed
+     * @throws LoadException if loading failed, including if the class was not found
+     *
+     * @since 1.0
+     */
+    @Override
+    public Class&lt;?&gt; loadClass(final Source source, final String name) {
+        
+        // loading from static layers only?
+<span class="fc bfc" id="L233" title="All 2 branches covered.">        if (!isWithTopCodeCache) {</span>
+<span class="fc" id="L234">            return BytecodeClassLoader.loadClassBySourceAndName(staticTopLoader, source, name);</span>
+        }
+
+        // code layers version available and is up-to-date or parent first?
+<span class="fc" id="L238">        final BytecodeClassLoader staticLoader = findBytecodeClassLoaderBySource(source);</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">        if (staticLoader != null) {</span>
+<span class="fc" id="L240">            final long lastModifiedAtCompileTime = staticLoader.getCode().getLastModifiedAtCompileTime(source);</span>
+<span class="fc bfc" id="L241" title="All 4 branches covered.">            if (topLoadMode == LoadMode.PARENT_FIRST || lastModifiedAtCompileTime == source.getLastModified()) {</span>
+<span class="fc" id="L242">                return BytecodeClassLoader.loadClassBySourceAndName(staticTopLoader, source, name);</span>
+            }
+        }
+
+        // load from top code cache
+<span class="fc" id="L247">        return getTopLoader(source).loadClass(source, name);</span>
+    }
+
+    private BytecodeClassLoader getTopLoader(final Source source) {
+<span class="fc" id="L251">        final SingleSourceCode code = topCodeCache.getUpToDateCode(source);</span>
+<span class="fc" id="L252">        BytecodeClassLoader topLoader = topLoaders.get(source);</span>
+<span class="fc bfc" id="L253" title="All 2 branches covered.">        if (topLoader == null || ((SingleSourceCode)topLoader.getCode()).getLastModifiedAtCompileTime()</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">                != code.getLastModifiedAtCompileTime()) {</span>
+<span class="fc" id="L255">            topLoader = new BytecodeClassLoader(this, topLoadMode, code);</span>
+<span class="fc" id="L256">            topLoaders.put(source, topLoader);</span>
+<span class="fc" id="L257">            classLoaderQueue.add(new WeakReference&lt;&gt;(topLoader));</span>
+        }
+<span class="fc" id="L259">        return topLoader;</span>
+    }
+
+    /**
+     * tries to find the bytecode class loader that can load classes that were created
+     * by compiling the given source.
+     * &lt;p&gt;
+     * Specifically for {@link LayeredClassLoader}, top code cache is not involved;
+     * the search is limited to static code layers and the parent class loader.
+     *
+     * @param source source
+     *
+     * @return bytecode class loader if found, null otherwise
+     *
+     * @since 1.0
+     */
+    @Override
+    public BytecodeClassLoader findBytecodeClassLoaderBySource(final Source source) {
+<span class="fc" id="L277">        BytecodeClassLoader loader = null;</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">        if (getLoadMode() == LoadMode.PARENT_FIRST) {</span>
+<span class="fc bfc" id="L279" title="All 2 branches covered.">            if (getParent() instanceof SourceClassLoader) {</span>
+<span class="fc" id="L280">                loader = ((SourceClassLoader)getParent()).findBytecodeClassLoaderBySource(source);</span>
+            }
+<span class="fc bfc" id="L282" title="All 4 branches covered.">            if (loader == null &amp;&amp; staticTopLoader instanceof SourceClassLoader) {</span>
+<span class="fc" id="L283">                loader = ((SourceClassLoader)staticTopLoader).findBytecodeClassLoaderBySource(source);</span>
+            }
+        } else {
+<span class="fc bfc" id="L286" title="All 2 branches covered.">            if (staticTopLoader instanceof SourceClassLoader) {</span>
+<span class="fc" id="L287">                loader = ((SourceClassLoader)staticTopLoader).findBytecodeClassLoaderBySource(source);</span>
+            }
+<span class="fc bfc" id="L289" title="All 4 branches covered.">            if (loader == null &amp;&amp; (getParent() instanceof SourceClassLoader)) {</span>
+<span class="fc" id="L290">                loader = ((SourceClassLoader)getParent()).findBytecodeClassLoaderBySource(source);</span>
+            }
+        }
+<span class="fc" id="L293">        return loader;</span>
+    }
+    
+    @Override
+    public LoadMode getLoadMode() {
+<span class="fc" id="L298">        return builder.getLoadMode();</span>
+    }
+    
+    /**
+     * creates a clone with the same code layers
+     * and with shared top code cache.
+     *
+     * @return clone
+     * 
+     * @since 1.0
+     */
+    @Override
+    public LayeredClassLoader clone() {
+<span class="fc" id="L311">        return builder.buildFromCodeLayers();</span>
+    }
+
+    @Override
+    public void releaseClasses(final ClassReleaser releaser) {
+        WeakReference&lt;BytecodeClassLoader&gt; ref;
+        do {
+<span class="fc" id="L318">            ref = classLoaderQueue.poll();</span>
+<span class="fc bfc" id="L319" title="All 2 branches covered.">            if (ref != null) {</span>
+<span class="fc" id="L320">                final BytecodeClassLoader loader = ref.get();</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">                if (loader != null) {</span>
+<span class="fc" id="L322">                    loader.releaseClasses(releaser);</span>
+                }
+            }
+<span class="fc bfc" id="L325" title="All 2 branches covered.">        } while (ref != null);</span>
+<span class="fc" id="L326">    }</span>
+    
+    /**
+     * creates a clone with the same code layers
+     * and a separate top code cache
+     * (initially with the same cached bytecode).
+     *
+     * @return clone
+     * 
+     * @since 1.0
+     */
+    public LayeredClassLoader cloneWithSeparateTopCodeCache() {
+<span class="fc bfc" id="L338" title="All 2 branches covered.">        if (!isWithTopCodeCache) {</span>
+<span class="fc" id="L339">            return clone();</span>
+        }
+<span class="fc" id="L341">        final LayeredClassLoader detachedClone = builder.buildFromCodeLayers();</span>
+<span class="fc" id="L342">        detachedClone.topCodeCache = topCodeCache.clone();</span>
+<span class="fc" id="L343">        detachedClone.builder.setTopCodeCacheAfterCreating(detachedClone.topCodeCache);</span>
+<span class="fc" id="L344">        return detachedClone;</span>
+    }
+    
+    /**
+     * gets the code layers.
+     *
+     * @return code layers
+     * 
+     * @since 1.0
+     */
+    public List&lt;Code&gt; getCodeLayers() {
+<span class="fc" id="L355">        return codeLayers;</span>
+    }
+    
+    /**
+     * gets the builder.
+     *
+     * @return builder
+     * 
+     * @since 1.0
+     */
+    public Builder getBuilder() {
+<span class="fc" id="L366">        return builder;</span>
+    }
+    
+    /**
+     * gets the top code cache.
+     *
+     * @return top code cache
+     * 
+     * @since 1.0
+     */
+    public TopCodeCache getTopCodeCache() {
+<span class="fc" id="L377">        return topCodeCache;</span>
+    }
+    
+    
+    /**
+     * Builder for instances of {@link LayeredClassLoader}.
+     * 
+     * @since 1.0
+     * 
+     * @author Alain Stalder
+     * @author Made in Switzerland.
+     */
+    public static class Builder {
+        
+        private boolean isCommitted;
+        
+        private ClassLoader parent;
+        private LoadMode loadMode;
+        
+        private List&lt;Sources&gt; sourcesLayers;
+        private List&lt;Code&gt; codeLayers;
+        
+        private boolean isWithTopCodeCache;
+        private LoadMode topLoadMode;
+        private TopCodeCache topCodeCache;
+        
+        /**
+         * constructor.
+         * 
+         * @since 1.0
+         */
+<span class="fc" id="L408">        public Builder() {</span>
+<span class="fc" id="L409">            isCommitted = false;</span>
+<span class="fc" id="L410">        }</span>
+
+        /**
+         * sets the parent class loader, default is the context class loader
+         * of the current thread.
+         *
+         * @param parent parent class loader
+         * 
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setParent(final ClassLoader parent) {
+<span class="fc" id="L423">            check();</span>
+<span class="fc" id="L424">            this.parent = parent;</span>
+<span class="fc" id="L425">            return this;</span>
+        }
+        
+        /**
+         * sets the load mode for the (static) code layers, default is &quot;current first&quot;.
+         *
+         * @param loadMode load mode for the (static) code layers
+         *
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setLoadMode(final LoadMode loadMode) {
+<span class="fc" id="L438">            check();</span>
+<span class="fc" id="L439">            this.loadMode = loadMode;</span>
+<span class="fc" id="L440">            return this;</span>
+        }
+
+        /**
+         * sets the sources layers, default is no layers.
+         *
+         * @param sourcesLayers sources layers
+         * 
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setSourcesLayers(final List&lt;Sources&gt; sourcesLayers) {
+<span class="fc" id="L453">            check(); </span>
+<span class="fc" id="L454">            this.sourcesLayers = sourcesLayers;</span>
+<span class="fc" id="L455">            return this;</span>
+        }
+        
+        /**
+         * sets the sources layers, default is no layers.
+         *
+         * @param sourcesLayers sources layers
+         * 
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setSourcesLayers(final Sources... sourcesLayers) {
+<span class="fc" id="L468">            return setSourcesLayers(Arrays.asList(sourcesLayers));</span>
+        }
+
+        /**
+         * sets the code layers, default is no layers.
+         *
+         * @param codeLayers code layers
+         * 
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setCodeLayers(final List&lt;Code&gt; codeLayers) {
+<span class="fc" id="L481">            check();</span>
+<span class="fc" id="L482">            this.codeLayers = codeLayers;</span>
+<span class="fc" id="L483">            return this;</span>
+        }
+        
+        private void setCodeLayersAfterCreating(final List&lt;Code&gt; codeLayers) {
+<span class="fc" id="L487">            this.codeLayers = codeLayers;</span>
+<span class="fc" id="L488">        }</span>
+        
+        /**
+         * sets the code layers, default is no layers.
+         *
+         * @param codeLayers code layers
+         *
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setCodeLayers(final Code... codeLayers) {
+<span class="fc" id="L500">            return setCodeLayers(Arrays.asList(codeLayers));</span>
+        }
+
+        /**
+         * sets whether to use the a top code cache or not,
+         * along with the top code cache (OK to pass null if setting to false),
+         * default is not to use a top code cache.
+         * &lt;p&gt;
+         * Note that the default is the opposite in the {@link LayeredEngine}.
+         *
+         * @param isWithTopCodeCache whether to use the a top code cache or not
+         * @param topCodeCache top code cache (OK to pass null if setting to false)
+         *
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setWithTopCodeCache(final boolean isWithTopCodeCache, TopCodeCache topCodeCache) {
+<span class="fc" id="L518">            check();</span>
+<span class="fc" id="L519">            this.isWithTopCodeCache = isWithTopCodeCache;</span>
+<span class="fc" id="L520">            this.topCodeCache = topCodeCache;</span>
+<span class="fc" id="L521">            return this;</span>
+        }
+        
+        private void setTopCodeCacheAfterCreating(TopCodeCache topCodeCache) {
+<span class="fc" id="L525">            this.topCodeCache = topCodeCache;</span>
+<span class="fc" id="L526">        }</span>
+
+        /**
+         * sets the load mode for the top code cache, default is &quot;parent first&quot;.
+         *
+         * @param topLoadMode load mode for the top code cache
+         * 
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setTopLoadMode(final LoadMode topLoadMode) {
+<span class="fc" id="L538">            check();</span>
+<span class="fc" id="L539">            this.topLoadMode = topLoadMode;</span>
+<span class="fc" id="L540">            return this;</span>
+        }
+        
+        /**
+         * gets the parent class loader.
+         *
+         * @return parent class loader
+         * 
+         * @since 1.0
+         */
+        public ClassLoader getParent() {
+<span class="fc" id="L551">            return parent;</span>
+        }
+        
+        /**
+         * gets the load mode for the (static) code layers.
+         *
+         * @return load mode for the (static) code layers
+         * 
+         * @since 1.0
+         */
+        public LoadMode getLoadMode() {
+<span class="fc" id="L562">            return loadMode;</span>
+        }
+        
+        /**
+         * gets the sources layers.
+         *
+         * @return sources layers
+         * 
+         * @since 1.0
+         */
+        public List&lt;Sources&gt; getSourcesLayers() {
+<span class="fc" id="L573">            return sourcesLayers;</span>
+        }
+        
+        /**
+         * gets the code layers.
+         *
+         * @return code layers
+         * 
+         * @since 1.0
+         */
+        public List&lt;Code&gt; getCodeLayers() {
+<span class="fc" id="L584">            return codeLayers;</span>
+        }
+        
+        /**
+         * gets whether to use the a top code cache or not.
+         *
+         * @return whether to use the a top code cache or not
+         * 
+         * @since 1.0
+         */
+        public boolean isWithTopCodeCache() {
+<span class="fc" id="L595">            return isWithTopCodeCache;</span>
+        }
+        
+        /**
+         * gets the top code cache.
+         *
+         * @return top code cache
+         * 
+         * @since 1.0
+         */
+        public TopCodeCache getTopCodeCache() {
+<span class="fc" id="L606">            return topCodeCache;</span>
+        }
+        
+        /**
+         * gets the top load mode.
+         *
+         * @return top load mode
+         * 
+         * @since 1.0
+         */
+        public LoadMode getTopLoadMode() {
+<span class="fc" id="L617">            return topLoadMode;</span>
+        }
+        
+        private Builder commit() {
+<span class="fc bfc" id="L621" title="All 2 branches covered.">            if (!isCommitted) {</span>
+<span class="fc bfc" id="L622" title="All 2 branches covered.">                if (parent == null) {</span>
+<span class="fc" id="L623">                    parent = Thread.currentThread().getContextClassLoader();</span>
+                }
+<span class="fc bfc" id="L625" title="All 2 branches covered.">                if (loadMode == null) {</span>
+<span class="fc" id="L626">                    loadMode = LoadMode.CURRENT_FIRST;</span>
+                }
+<span class="fc bfc" id="L628" title="All 2 branches covered.">                if (sourcesLayers == null) {</span>
+<span class="fc" id="L629">                    sourcesLayers = new LinkedList&lt;&gt;();</span>
+                }
+<span class="fc bfc" id="L631" title="All 2 branches covered.">                if (codeLayers == null) {</span>
+<span class="fc" id="L632">                    codeLayers = new LinkedList&lt;&gt;();</span>
+                }
+<span class="fc bfc" id="L634" title="All 2 branches covered.">                if (topLoadMode == null) {</span>
+<span class="fc" id="L635">                    topLoadMode = LoadMode.PARENT_FIRST;</span>
+                }
+<span class="fc" id="L637">                isCommitted = true;</span>
+            }
+<span class="fc" id="L639">            return this;</span>
+        }
+        
+        /**
+         * builds a new instance of {@link LayeredClassLoader}
+         * based on already compiled code layers.
+         *
+         * @return new instance
+         * 
+         * @since 1.0
+         */
+        public LayeredClassLoader buildFromCodeLayers() {
+<span class="fc" id="L651">            commit();</span>
+<span class="fc" id="L652">            return new LayeredClassLoader(this);</span>
+        }
+        
+        /**
+         * builds a new instance of {@link LayeredClassLoader}
+         * based on sources to compile to code layers.
+         *
+         * @return new instance
+         *
+         * @throws CompileException if compiling the sources layers failed
+         * 
+         * @since 1.0
+         */
+        public LayeredClassLoader buildFromSourcesLayers() {
+<span class="fc" id="L666">            commit();</span>
+<span class="fc" id="L667">            return new LayeredClassLoader(this, true);</span>
+        }
+        
+        private void check() {
+<span class="fc bfc" id="L671" title="All 2 branches covered.">            if (isCommitted) {</span>
+<span class="fc" id="L672">                throw new IllegalStateException(&quot;Builder already used.&quot;);</span>
+            }
+<span class="fc" id="L674">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

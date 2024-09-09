@@ -1,0 +1,445 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SourceUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.artecat.grengine.source</a> &gt; <span class="el_source">SourceUtil.java</span></div><h1>SourceUtil.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.artecat.grengine.source;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+
+import static java.util.stream.Collectors.toSet;
+
+
+/**
+ * Static utility methods around {@link Source}.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+<span class="fc" id="L45">public class SourceUtil {</span>
+
+    /**
+     * creates a source set from the given collections of script texts,
+     * using the default source factory.
+     *
+     * @param texts script texts
+     * 
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; textsToSourceSet(final Collection&lt;String&gt; texts) {
+<span class="fc" id="L58">        return textsToSourceSet(new DefaultSourceFactory(), texts);</span>
+    }
+
+    /**
+     * creates a source set from the given script texts,
+     * using the default source factory.
+     *
+     * @param texts script texts
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; textsToSourceSet(final String... texts) {
+<span class="fc" id="L72">        return textsToSourceSet(new DefaultSourceFactory(), texts);</span>
+    }
+
+    /**
+     * creates a source set from the given collections of script texts,
+     * using the given source factory.
+     *
+     * @param sourceFactory source factory
+     * @param texts script texts
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; textsToSourceSet(final SourceFactory sourceFactory, final Collection&lt;String&gt; texts) {
+<span class="fc" id="L87">        return texts.stream()</span>
+<span class="fc" id="L88">                .map(sourceFactory::fromText)</span>
+<span class="fc" id="L89">                .collect(toSet());</span>
+    }
+    
+    /**
+     * creates a source set from the given script texts,
+     * using the given source factory.
+     *
+     * @param sourceFactory source factory
+     * @param texts script texts
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; textsToSourceSet(final SourceFactory sourceFactory, final String... texts) {
+<span class="fc" id="L104">        return textsToSourceSet(sourceFactory, Arrays.asList(texts));</span>
+    }
+    
+    /**
+     * creates a source set from the given map of desired class name to script text,
+     * using the default source factory.
+     *
+     * @param texts map of desired class name to script text
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; textsToSourceSet(final Map&lt;String,String&gt; texts) {
+<span class="fc" id="L118">        return textsToSourceSet(new DefaultSourceFactory(), texts);</span>
+    }
+    
+    /**
+     * creates a source set from the given map of of desired class name to script text,
+     * using the given source factory.
+     *
+     * @param sourceFactory source factory
+     * @param texts map of desired class name to script text
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; textsToSourceSet(final SourceFactory sourceFactory, final Map&lt;String,String&gt; texts) {
+<span class="fc" id="L133">        return texts.entrySet().stream()</span>
+<span class="fc" id="L134">                .map(entry -&gt; sourceFactory.fromText(entry.getValue(), entry.getKey()))</span>
+<span class="fc" id="L135">                .collect(toSet());</span>
+    }
+
+    
+    /**
+     * creates a source set from the given collections of script files,
+     * using the default source factory.
+     *
+     * @param files script files
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; filesToSourceSet(final Collection&lt;File&gt; files) {
+<span class="fc" id="L150">        return filesToSourceSet(new DefaultSourceFactory(), files);</span>
+    }
+    
+    /**
+     * creates a source set from the given script files,
+     * using the default source factory.
+     *
+     * @param files script files
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; filesToSourceSet(final File... files) {
+<span class="fc" id="L164">        return filesToSourceSet(new DefaultSourceFactory(), files);</span>
+    }
+    
+    /**
+     * creates a source set from the given collections of script files,
+     * using the given source factory.
+     *
+     * @param sourceFactory source factory
+     * @param files script files
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; filesToSourceSet(final SourceFactory sourceFactory, final Collection&lt;File&gt; files) {
+<span class="fc" id="L179">        return files.stream()</span>
+<span class="fc" id="L180">                .map(sourceFactory::fromFile)</span>
+<span class="fc" id="L181">                .collect(toSet());</span>
+    }
+    
+    /**
+     * creates a source set from the given script files,
+     * using the given source factory.
+     *
+     * @param sourceFactory source factory
+     * @param files script files
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; filesToSourceSet(final SourceFactory sourceFactory, final File... files) {
+<span class="fc" id="L196">        return filesToSourceSet(sourceFactory, Arrays.asList(files));</span>
+    }
+    
+    
+    /**
+     * creates a source set from the given collections of script URLs,
+     * using the default source factory.
+     *
+     * @param urls script URLs
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; urlsToSourceSet(final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L211">        return urlsToSourceSet(new DefaultSourceFactory(), urls);</span>
+    }
+    
+    /**
+     * creates a source set from the given script URLs,
+     * using the default source factory.
+     *
+     * @param urls script URLs
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; urlsToSourceSet(final URL... urls) {
+<span class="fc" id="L225">        return urlsToSourceSet(new DefaultSourceFactory(), urls);</span>
+    }
+    
+    /**
+     * creates a source set from the given collections of script URLs,
+     * using the given source factory.
+     *
+     * @param sourceFactory source factory
+     * @param urls script URLs
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; urlsToSourceSet(final SourceFactory sourceFactory, final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L240">        return urls.stream()</span>
+<span class="fc" id="L241">                .map(sourceFactory::fromUrl)</span>
+<span class="fc" id="L242">                .collect(toSet());</span>
+    }
+    
+    /**
+     * creates a source set from the given script URLs,
+     * using the given source factory.
+     *
+     * @param sourceFactory source factory
+     * @param urls script URLs
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; urlsToSourceSet(final SourceFactory sourceFactory, final URL... urls) {
+<span class="fc" id="L257">        return urlsToSourceSet(sourceFactory, Arrays.asList(urls));</span>
+    }
+    
+    
+    /**
+     * converts the given source to a set of source that contains only the given source.
+     *
+     * @param source source
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; sourceToSourceSet(final Source source) {
+<span class="fc" id="L271">        return new HashSet&lt;&gt;(Collections.singletonList(source));</span>
+    }
+
+    /**
+     * converts the given collection of source to a set of source.
+     *
+     * @param sourceCollection source collection
+     *
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; sourceCollectionToSourceSet(final Collection&lt;Source&gt; sourceCollection) {
+<span class="fc" id="L284">        return new HashSet&lt;&gt;(sourceCollection);</span>
+    }
+
+    /**
+     * converts the given source varargs or array of source to a set of source.
+     *
+     * @param sourceArray source varargs or array of source
+     * @return source set
+     *
+     * @since 1.0
+     */
+    public static Set&lt;Source&gt; sourceArrayToSourceSet(final Source... sourceArray) {
+<span class="fc" id="L296">        return new HashSet&lt;&gt;(Arrays.asList(sourceArray));</span>
+    }
+
+    
+    /**
+     * calculates a cryptographic hash function (message digest).
+     * &lt;p&gt;
+     * The given text is first UTF-8 encoded to bytes, then the given hash
+     * is calculated and finally returned as a hex string.
+     * 
+     * @param text the text to hash
+     * @param algorithm the hash algorithm to use
+     *
+     * @return hash hex string
+     * @throws UnsupportedOperationException if the given hash algorithm is not available
+     * 
+     * @since 1.0
+     */
+    public static String hash(final String text, final String algorithm) {
+        final MessageDigest hash;
+        try {
+<span class="fc" id="L317">            hash = MessageDigest.getInstance(algorithm);</span>
+<span class="fc" id="L318">        } catch (NoSuchAlgorithmException e) {</span>
+<span class="fc" id="L319">            throw new UnsupportedOperationException(&quot;No message digest &quot; + algorithm + &quot;.&quot;, e);</span>
+<span class="fc" id="L320">        }</span>
+<span class="fc" id="L321">        byte[] digestBytes = hash.digest(text.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L322">        return bytesToHex(digestBytes);</span>
+    }
+
+    /**
+     * calculates an MD5 hash.
+     * &lt;p&gt;
+     * The given text is first UTF-8 encoded to bytes, then the MD5 hash
+     * is calculated and finally returned as a hex string.
+     * 
+     * @param text the text to hash
+     *
+     * @return MD5 hash text string
+     * @throws UnsupportedOperationException if MD5 is not available (which is very unlikely)
+     * 
+     * @since 1.0
+     */
+    public static String md5(final String text) {
+<span class="fc" id="L339">        return hash(text, &quot;MD5&quot;);</span>
+    }
+
+    /**
+     * gets the start of the given text with line breaks removed.
+     * &lt;p&gt;
+     * The returned text is at most maxLen characters long and line breaks
+     * are converted to &quot;%n&quot;. If the text had to be cut, this is indicated
+     * by &quot;[..]&quot; at the end of the returned text.
+     * 
+     * @param text text
+     * @param maxLen maximal length of the returned text
+     *
+     * @return start of the given text with line breaks removed
+     *
+     * @throws IllegalArgumentException if maxLen is less than 10
+     * 
+     * @since 1.1.1
+     */
+    public static String getTextStartNoLineBreaks(final String text, final int maxLen) {
+<span class="fc bfc" id="L359" title="All 2 branches covered.">        if (text == null) {</span>
+<span class="fc" id="L360">            return null;</span>
+        }
+<span class="fc bfc" id="L362" title="All 2 branches covered.">        if (maxLen &lt; 0) {</span>
+<span class="fc" id="L363">            throw new IllegalArgumentException(&quot;Max len (&quot; + maxLen + &quot;) is negative.&quot;);</span>
+        }
+<span class="fc bfc" id="L365" title="All 2 branches covered.">        if (maxLen &lt; 10) {</span>
+<span class="fc" id="L366">            throw new IllegalArgumentException(&quot;Max len (&quot; + maxLen + &quot;) must be at least 10.&quot;);</span>
+        }
+<span class="fc" id="L368">        String out = text;</span>
+        // reduce length to reduce processing, but keep longer than max
+<span class="fc bfc" id="L370" title="All 2 branches covered.">        if (out.length() &gt; maxLen) {</span>
+<span class="fc" id="L371">            out = out.substring(0, maxLen + 1);</span>
+        }
+<span class="fc" id="L373">        out = out.replace(&quot;\r\n&quot;, &quot;%n&quot;).replace(&quot;\r&quot;, &quot;%n&quot;).replace(&quot;\n&quot;, &quot;%n&quot;);</span>
+<span class="fc bfc" id="L374" title="All 2 branches covered.">        if (out.length() &lt;= maxLen) {</span>
+<span class="fc" id="L375">            return out;</span>
+        }
+<span class="fc" id="L377">        return out.substring(0, maxLen - 4) + &quot;[..]&quot;;</span>
+    }
+
+    /**
+     * reads the content from the given URL using the given character encoding.
+     *
+     * @param url URL
+     * @param encoding encoding, e.g. &quot;UTF-8&quot;
+     *
+     * @return URL content text
+     * @throws IOException if could not read from the URL
+     *
+     * @since 1.0
+     */
+    public static String readUrlText(final URL url, final String encoding) throws IOException {
+        final InputStream in;
+        try {
+<span class="fc" id="L394">            in = url.openStream();</span>
+<span class="fc" id="L395">        } catch (IOException e) {</span>
+<span class="fc" id="L396">            throw new IOException(&quot;Could not open stream for URL '&quot; + url + &quot;': &quot; + e, e);</span>
+<span class="fc" id="L397">        }</span>
+
+<span class="fc" id="L399">        final Scanner scanner = new Scanner(in, encoding);</span>
+<span class="fc" id="L400">        scanner.useDelimiter(&quot;\\A&quot;);</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">        final String text = scanner.hasNext() ? scanner.next() : &quot;&quot;;</span>
+<span class="fc" id="L402">        scanner.close();</span>
+<span class="fc" id="L403">        final IOException e = scanner.ioException();</span>
+<span class="pc bpc" id="L404" title="1 of 2 branches missed.">        if (e != null) {</span>
+<span class="nc" id="L405">            throw new IOException(&quot;Could not read from URL '&quot; + url + &quot;': &quot; + e, e);</span>
+        }
+
+<span class="fc" id="L408">        return text;</span>
+    }
+    
+    /**
+     * converts the given file to the canonical file, with fallback
+     * to the absolute file if getting the canonical file failed.
+     * &lt;p&gt;
+     * The returned file is thus guaranteed to be an absolute file.
+     *
+     * @param file file
+     *
+     * @return canonical or absolute file
+     *
+     * @since 1.0
+     */
+    public static File toCanonicalOrAbsoluteFile(final File file) {
+        try {
+<span class="fc" id="L425">            return file.getCanonicalFile();</span>
+<span class="fc" id="L426">        } catch (IOException e) {</span>
+<span class="fc" id="L427">            return file.getAbsoluteFile();</span>
+        }
+    }
+
+    // converts given bytes to a hex string with upper case letters
+    private static String bytesToHex(byte[] bytes) {
+<span class="fc" id="L433">        final StringBuilder builder = new StringBuilder(32);</span>
+        int digit;
+<span class="fc bfc" id="L435" title="All 2 branches covered.">        for (byte b : bytes) {</span>
+<span class="fc" id="L436">            digit = (b &gt;&gt; 4) &amp; 0xF;</span>
+<span class="fc bfc" id="L437" title="All 2 branches covered.">            builder.append(digit &lt; 10 ? (char) ('0' + digit) : (char) ('A' - 10 + digit));</span>
+<span class="fc" id="L438">            digit = (b &amp; 0xF);</span>
+<span class="fc bfc" id="L439" title="All 2 branches covered.">            builder.append(digit &lt; 10 ? (char) ('0' + digit) : (char) ('A' - 10 + digit));</span>
+        }
+<span class="fc" id="L441">        return builder.toString();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

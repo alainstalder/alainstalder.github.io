@@ -1,0 +1,2459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 1.5.0">
+<title>Grengine User Manual</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic|Noto+Serif:400,400italic,700,700italic|Droid+Sans+Mono:400">
+<style>
+/* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
+/* Remove the comments around the @import statement below when using this as a custom stylesheet */
+/*@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic|Noto+Serif:400,400italic,700,700italic|Droid+Sans+Mono:400";*/
+article,aside,details,figcaption,figure,footer,header,hgroup,main,nav,section,summary{display:block}
+audio,canvas,video{display:inline-block}
+audio:not([controls]){display:none;height:0}
+[hidden],template{display:none}
+script{display:none!important}
+html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}
+body{margin:0}
+a{background:transparent}
+a:focus{outline:thin dotted}
+a:active,a:hover{outline:0}
+h1{font-size:2em;margin:.67em 0}
+abbr[title]{border-bottom:1px dotted}
+b,strong{font-weight:bold}
+dfn{font-style:italic}
+hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0}
+mark{background:#ff0;color:#000}
+code,kbd,pre,samp{font-family:monospace;font-size:1em}
+pre{white-space:pre-wrap}
+q{quotes:"\201C" "\201D" "\2018" "\2019"}
+small{font-size:80%}
+sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}
+sup{top:-.5em}
+sub{bottom:-.25em}
+img{border:0}
+svg:not(:root){overflow:hidden}
+figure{margin:0}
+fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}
+legend{border:0;padding:0}
+button,input,select,textarea{font-family:inherit;font-size:100%;margin:0}
+button,input{line-height:normal}
+button,select{text-transform:none}
+button,html input[type="button"],input[type="reset"],input[type="submit"]{-webkit-appearance:button;cursor:pointer}
+button[disabled],html input[disabled]{cursor:default}
+input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}
+input[type="search"]{-webkit-appearance:textfield;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box}
+input[type="search"]::-webkit-search-cancel-button,input[type="search"]::-webkit-search-decoration{-webkit-appearance:none}
+button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}
+textarea{overflow:auto;vertical-align:top}
+table{border-collapse:collapse;border-spacing:0}
+*,*:before,*:after{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box}
+html,body{font-size:100%}
+body{background:#fff;color:rgba(0,0,0,.8);padding:0;margin:0;font-family:"Noto Serif","DejaVu Serif",serif;font-weight:400;font-style:normal;line-height:1;position:relative;cursor:auto}
+a:hover{cursor:pointer}
+img,object,embed{max-width:100%;height:auto}
+object,embed{height:100%}
+img{-ms-interpolation-mode:bicubic}
+#map_canvas img,#map_canvas embed,#map_canvas object,.map_canvas img,.map_canvas embed,.map_canvas object{max-width:none!important}
+.left{float:left!important}
+.right{float:right!important}
+.text-left{text-align:left!important}
+.text-right{text-align:right!important}
+.text-center{text-align:center!important}
+.text-justify{text-align:justify!important}
+.hide{display:none}
+.antialiased,body{-webkit-font-smoothing:antialiased}
+img{display:inline-block;vertical-align:middle}
+textarea{height:auto;min-height:50px}
+select{width:100%}
+p.lead,.paragraph.lead>p,#preamble>.sectionbody>.paragraph:first-of-type p{font-size:1.21875em;line-height:1.6}
+.subheader,.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{line-height:1.45;color:#7a2518;font-weight:400;margin-top:0;margin-bottom:.25em}
+div,dl,dt,dd,ul,ol,li,h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6,pre,form,p,blockquote,th,td{margin:0;padding:0;direction:ltr}
+a{color:#2156a5;text-decoration:underline;line-height:inherit}
+a:hover,a:focus{color:#1d4b8f}
+a img{border:none}
+p{font-family:inherit;font-weight:400;font-size:1em;line-height:1.6;margin-bottom:1.25em;text-rendering:optimizeLegibility}
+p aside{font-size:.875em;line-height:1.35;font-style:italic}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{font-family:"Open Sans","DejaVu Sans",sans-serif;font-weight:300;font-style:normal;color:#ba3925;text-rendering:optimizeLegibility;margin-top:1em;margin-bottom:.5em;line-height:1.0125em}
+h1 small,h2 small,h3 small,#toctitle small,.sidebarblock>.content>.title small,h4 small,h5 small,h6 small{font-size:60%;color:#e99b8f;line-height:0}
+h1{font-size:2.125em}
+h2{font-size:1.6875em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.375em}
+h4,h5{font-size:1.125em}
+h6{font-size:1em}
+hr{border:solid #ddddd8;border-width:1px 0 0;clear:both;margin:1.25em 0 1.1875em;height:0}
+em,i{font-style:italic;line-height:inherit}
+strong,b{font-weight:bold;line-height:inherit}
+small{font-size:60%;line-height:inherit}
+code{font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;font-weight:400;color:rgba(0,0,0,.9)}
+ul,ol,dl{font-size:1em;line-height:1.6;margin-bottom:1.25em;list-style-position:outside;font-family:inherit}
+ul,ol,ul.no-bullet,ol.no-bullet{margin-left:1.5em}
+ul li ul,ul li ol{margin-left:1.25em;margin-bottom:0;font-size:1em}
+ul.square li ul,ul.circle li ul,ul.disc li ul{list-style:inherit}
+ul.square{list-style-type:square}
+ul.circle{list-style-type:circle}
+ul.disc{list-style-type:disc}
+ul.no-bullet{list-style:none}
+ol li ul,ol li ol{margin-left:1.25em;margin-bottom:0}
+dl dt{margin-bottom:.3125em;font-weight:bold}
+dl dd{margin-bottom:1.25em}
+abbr,acronym{text-transform:uppercase;font-size:90%;color:rgba(0,0,0,.8);border-bottom:1px dotted #ddd;cursor:help}
+abbr{text-transform:none}
+blockquote{margin:0 0 1.25em;padding:.5625em 1.25em 0 1.1875em;border-left:1px solid #ddd}
+blockquote cite{display:block;font-size:.9375em;color:rgba(0,0,0,.6)}
+blockquote cite:before{content:"\2014 \0020"}
+blockquote cite a,blockquote cite a:visited{color:rgba(0,0,0,.6)}
+blockquote,blockquote p{line-height:1.6;color:rgba(0,0,0,.85)}
+@media only screen and (min-width:768px){h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2}
+h1{font-size:2.75em}
+h2{font-size:2.3125em}
+h3,#toctitle,.sidebarblock>.content>.title{font-size:1.6875em}
+h4{font-size:1.4375em}}table{background:#fff;margin-bottom:1.25em;border:solid 1px #dedede}
+table thead,table tfoot{background:#f7f8f7;font-weight:bold}
+table thead tr th,table thead tr td,table tfoot tr th,table tfoot tr td{padding:.5em .625em .625em;font-size:inherit;color:rgba(0,0,0,.8);text-align:left}
+table tr th,table tr td{padding:.5625em .625em;font-size:inherit;color:rgba(0,0,0,.8)}
+table tr.even,table tr.alt,table tr:nth-of-type(even){background:#f8f8f7}
+table thead tr th,table tfoot tr th,table tbody tr td,table tr td,table tfoot tr td{display:table-cell;line-height:1.6}
+h1,h2,h3,#toctitle,.sidebarblock>.content>.title,h4,h5,h6{line-height:1.2;word-spacing:-.05em}
+h1 strong,h2 strong,h3 strong,#toctitle strong,.sidebarblock>.content>.title strong,h4 strong,h5 strong,h6 strong{font-weight:400}
+.clearfix:before,.clearfix:after,.float-group:before,.float-group:after{content:" ";display:table}
+.clearfix:after,.float-group:after{clear:both}
+*:not(pre)>code{font-size:.9375em;font-style:normal!important;letter-spacing:0;padding:.1em .5ex;word-spacing:-.15em;background-color:#f7f7f8;-webkit-border-radius:4px;border-radius:4px;line-height:1.45;text-rendering:optimizeSpeed}
+pre,pre>code{line-height:1.45;color:rgba(0,0,0,.9);font-family:"Droid Sans Mono","DejaVu Sans Mono",monospace;font-weight:400;text-rendering:optimizeSpeed}
+.keyseq{color:rgba(51,51,51,.8)}
+kbd{display:inline-block;color:rgba(0,0,0,.8);font-size:.75em;line-height:1.4;background-color:#f7f7f7;border:1px solid #ccc;-webkit-border-radius:3px;border-radius:3px;-webkit-box-shadow:0 1px 0 rgba(0,0,0,.2),0 0 0 .1em white inset;box-shadow:0 1px 0 rgba(0,0,0,.2),0 0 0 .1em #fff inset;margin:-.15em .15em 0 .15em;padding:.2em .6em .2em .5em;vertical-align:middle;white-space:nowrap}
+.keyseq kbd:first-child{margin-left:0}
+.keyseq kbd:last-child{margin-right:0}
+.menuseq,.menu{color:rgba(0,0,0,.8)}
+b.button:before,b.button:after{position:relative;top:-1px;font-weight:400}
+b.button:before{content:"[";padding:0 3px 0 2px}
+b.button:after{content:"]";padding:0 2px 0 3px}
+p a>code:hover{color:rgba(0,0,0,.9)}
+#header,#content,#footnotes,#footer{width:100%;margin-left:auto;margin-right:auto;margin-top:0;margin-bottom:0;max-width:62.5em;*zoom:1;position:relative;padding-left:.9375em;padding-right:.9375em}
+#header:before,#header:after,#content:before,#content:after,#footnotes:before,#footnotes:after,#footer:before,#footer:after{content:" ";display:table}
+#header:after,#content:after,#footnotes:after,#footer:after{clear:both}
+#content{margin-top:1.25em}
+#content:before{content:none}
+#header>h1:first-child{color:rgba(0,0,0,.85);margin-top:2.25rem;margin-bottom:0}
+#header>h1:first-child+#toc{margin-top:8px;border-top:1px solid #ddddd8}
+#header>h1:only-child,body.toc2 #header>h1:nth-last-child(2){border-bottom:1px solid #ddddd8;padding-bottom:8px}
+#header .details{border-bottom:1px solid #ddddd8;line-height:1.45;padding-top:.25em;padding-bottom:.25em;padding-left:.25em;color:rgba(0,0,0,.6);display:-ms-flexbox;display:-webkit-flex;display:flex;-ms-flex-flow:row wrap;-webkit-flex-flow:row wrap;flex-flow:row wrap}
+#header .details span:first-child{margin-left:-.125em}
+#header .details span.email a{color:rgba(0,0,0,.85)}
+#header .details br{display:none}
+#header .details br+span:before{content:"\00a0\2013\00a0"}
+#header .details br+span.author:before{content:"\00a0\22c5\00a0";color:rgba(0,0,0,.85)}
+#header .details br+span#revremark:before{content:"\00a0|\00a0"}
+#header #revnumber{text-transform:capitalize}
+#header #revnumber:after{content:"\00a0"}
+#content>h1:first-child:not([class]){color:rgba(0,0,0,.85);border-bottom:1px solid #ddddd8;padding-bottom:8px;margin-top:0;padding-top:1rem;margin-bottom:1.25rem}
+#toc{border-bottom:1px solid #efefed;padding-bottom:.5em}
+#toc>ul{margin-left:.125em}
+#toc ul.sectlevel0>li>a{font-style:italic}
+#toc ul.sectlevel0 ul.sectlevel1{margin:.5em 0}
+#toc ul{font-family:"Open Sans","DejaVu Sans",sans-serif;list-style-type:none}
+#toc a{text-decoration:none}
+#toc a:active{text-decoration:underline}
+#toctitle{color:#7a2518;font-size:1.2em}
+@media only screen and (min-width:768px){#toctitle{font-size:1.375em}
+body.toc2{padding-left:15em;padding-right:0}
+#toc.toc2{margin-top:0!important;background-color:#f8f8f7;position:fixed;width:15em;left:0;top:0;border-right:1px solid #efefed;border-top-width:0!important;border-bottom-width:0!important;z-index:1000;padding:1.25em 1em;height:100%;overflow:auto}
+#toc.toc2 #toctitle{margin-top:0;font-size:1.2em}
+#toc.toc2>ul{font-size:.9em;margin-bottom:0}
+#toc.toc2 ul ul{margin-left:0;padding-left:1em}
+#toc.toc2 ul.sectlevel0 ul.sectlevel1{padding-left:0;margin-top:.5em;margin-bottom:.5em}
+body.toc2.toc-right{padding-left:0;padding-right:15em}
+body.toc2.toc-right #toc.toc2{border-right-width:0;border-left:1px solid #efefed;left:auto;right:0}}@media only screen and (min-width:1280px){body.toc2{padding-left:20em;padding-right:0}
+#toc.toc2{width:20em}
+#toc.toc2 #toctitle{font-size:1.375em}
+#toc.toc2>ul{font-size:.95em}
+#toc.toc2 ul ul{padding-left:1.25em}
+body.toc2.toc-right{padding-left:0;padding-right:20em}}#content #toc{border-style:solid;border-width:1px;border-color:#e0e0dc;margin-bottom:1.25em;padding:1.25em;background:#f8f8f7;-webkit-border-radius:4px;border-radius:4px}
+#content #toc>:first-child{margin-top:0}
+#content #toc>:last-child{margin-bottom:0}
+#footer{max-width:100%;background-color:rgba(0,0,0,.8);padding:1.25em}
+#footer-text{color:rgba(255,255,255,.8);line-height:1.44}
+.sect1{padding-bottom:.625em}
+@media only screen and (min-width:768px){.sect1{padding-bottom:1.25em}}.sect1+.sect1{border-top:1px solid #efefed}
+#content h1>a.anchor,h2>a.anchor,h3>a.anchor,#toctitle>a.anchor,.sidebarblock>.content>.title>a.anchor,h4>a.anchor,h5>a.anchor,h6>a.anchor{position:absolute;z-index:1001;width:1.5ex;margin-left:-1.5ex;display:block;text-decoration:none!important;visibility:hidden;text-align:center;font-weight:400}
+#content h1>a.anchor:before,h2>a.anchor:before,h3>a.anchor:before,#toctitle>a.anchor:before,.sidebarblock>.content>.title>a.anchor:before,h4>a.anchor:before,h5>a.anchor:before,h6>a.anchor:before{content:"\00A7";font-size:.85em;display:block;padding-top:.1em}
+#content h1:hover>a.anchor,#content h1>a.anchor:hover,h2:hover>a.anchor,h2>a.anchor:hover,h3:hover>a.anchor,#toctitle:hover>a.anchor,.sidebarblock>.content>.title:hover>a.anchor,h3>a.anchor:hover,#toctitle>a.anchor:hover,.sidebarblock>.content>.title>a.anchor:hover,h4:hover>a.anchor,h4>a.anchor:hover,h5:hover>a.anchor,h5>a.anchor:hover,h6:hover>a.anchor,h6>a.anchor:hover{visibility:visible}
+#content h1>a.link,h2>a.link,h3>a.link,#toctitle>a.link,.sidebarblock>.content>.title>a.link,h4>a.link,h5>a.link,h6>a.link{color:#ba3925;text-decoration:none}
+#content h1>a.link:hover,h2>a.link:hover,h3>a.link:hover,#toctitle>a.link:hover,.sidebarblock>.content>.title>a.link:hover,h4>a.link:hover,h5>a.link:hover,h6>a.link:hover{color:#a53221}
+.audioblock,.imageblock,.literalblock,.listingblock,.stemblock,.videoblock{margin-bottom:1.25em}
+.admonitionblock td.content>.title,.audioblock>.title,.exampleblock>.title,.imageblock>.title,.listingblock>.title,.literalblock>.title,.stemblock>.title,.openblock>.title,.paragraph>.title,.quoteblock>.title,table.tableblock>.title,.verseblock>.title,.videoblock>.title,.dlist>.title,.olist>.title,.ulist>.title,.qlist>.title,.hdlist>.title{text-rendering:optimizeLegibility;text-align:left;font-family:"Noto Serif","DejaVu Serif",serif;font-size:1rem;font-style:italic}
+table.tableblock>caption.title{white-space:nowrap;overflow:visible;max-width:0}
+.paragraph.lead>p,#preamble>.sectionbody>.paragraph:first-of-type p{color:rgba(0,0,0,.85)}
+table.tableblock #preamble>.sectionbody>.paragraph:first-of-type p{font-size:inherit}
+.admonitionblock>table{border-collapse:separate;border:0;background:none;width:100%}
+.admonitionblock>table td.icon{text-align:center;width:80px}
+.admonitionblock>table td.icon img{max-width:none}
+.admonitionblock>table td.icon .title{font-weight:bold;font-family:"Open Sans","DejaVu Sans",sans-serif;text-transform:uppercase}
+.admonitionblock>table td.content{padding-left:1.125em;padding-right:1.25em;border-left:1px solid #ddddd8;color:rgba(0,0,0,.6)}
+.admonitionblock>table td.content>:last-child>:last-child{margin-bottom:0}
+.exampleblock>.content{border-style:solid;border-width:1px;border-color:#e6e6e6;margin-bottom:1.25em;padding:1.25em;background:#fff;-webkit-border-radius:4px;border-radius:4px}
+.exampleblock>.content>:first-child{margin-top:0}
+.exampleblock>.content>:last-child{margin-bottom:0}
+.sidebarblock{border-style:solid;border-width:1px;border-color:#e0e0dc;margin-bottom:1.25em;padding:1.25em;background:#f8f8f7;-webkit-border-radius:4px;border-radius:4px}
+.sidebarblock>:first-child{margin-top:0}
+.sidebarblock>:last-child{margin-bottom:0}
+.sidebarblock>.content>.title{color:#7a2518;margin-top:0;text-align:center}
+.exampleblock>.content>:last-child>:last-child,.exampleblock>.content .olist>ol>li:last-child>:last-child,.exampleblock>.content .ulist>ul>li:last-child>:last-child,.exampleblock>.content .qlist>ol>li:last-child>:last-child,.sidebarblock>.content>:last-child>:last-child,.sidebarblock>.content .olist>ol>li:last-child>:last-child,.sidebarblock>.content .ulist>ul>li:last-child>:last-child,.sidebarblock>.content .qlist>ol>li:last-child>:last-child{margin-bottom:0}
+.literalblock pre,.listingblock pre:not(.highlight),.listingblock pre[class="highlight"],.listingblock pre[class^="highlight "],.listingblock pre.CodeRay,.listingblock pre.prettyprint{background:#f7f7f8}
+.sidebarblock .literalblock pre,.sidebarblock .listingblock pre:not(.highlight),.sidebarblock .listingblock pre[class="highlight"],.sidebarblock .listingblock pre[class^="highlight "],.sidebarblock .listingblock pre.CodeRay,.sidebarblock .listingblock pre.prettyprint{background:#f2f1f1}
+.literalblock pre,.literalblock pre[class],.listingblock pre,.listingblock pre[class]{-webkit-border-radius:4px;border-radius:4px;word-wrap:break-word;padding:1em;font-size:.8125em}
+.literalblock pre.nowrap,.literalblock pre[class].nowrap,.listingblock pre.nowrap,.listingblock pre[class].nowrap{overflow-x:auto;white-space:pre;word-wrap:normal}
+@media only screen and (min-width:768px){.literalblock pre,.literalblock pre[class],.listingblock pre,.listingblock pre[class]{font-size:.90625em}}@media only screen and (min-width:1280px){.literalblock pre,.literalblock pre[class],.listingblock pre,.listingblock pre[class]{font-size:1em}}.literalblock.output pre{color:#f7f7f8;background-color:rgba(0,0,0,.9)}
+.listingblock pre.highlightjs{padding:0}
+.listingblock pre.highlightjs>code{padding:1em;-webkit-border-radius:4px;border-radius:4px}
+.listingblock pre.prettyprint{border-width:0}
+.listingblock>.content{position:relative}
+.listingblock code[data-lang]:before{display:none;content:attr(data-lang);position:absolute;font-size:.75em;top:.425rem;right:.5rem;line-height:1;text-transform:uppercase;color:#999}
+.listingblock:hover code[data-lang]:before{display:block}
+.listingblock.terminal pre .command:before{content:attr(data-prompt);padding-right:.5em;color:#999}
+.listingblock.terminal pre .command:not([data-prompt]):before{content:"$"}
+table.pyhltable{border-collapse:separate;border:0;margin-bottom:0;background:none}
+table.pyhltable td{vertical-align:top;padding-top:0;padding-bottom:0}
+table.pyhltable td.code{padding-left:.75em;padding-right:0}
+pre.pygments .lineno,table.pyhltable td:not(.code){color:#999;padding-left:0;padding-right:.5em;border-right:1px solid #ddddd8}
+pre.pygments .lineno{display:inline-block;margin-right:.25em}
+table.pyhltable .linenodiv{background:none!important;padding-right:0!important}
+.quoteblock{margin:0 1em 1.25em 1.5em;display:table}
+.quoteblock>.title{margin-left:-1.5em;margin-bottom:.75em}
+.quoteblock blockquote,.quoteblock blockquote p{color:rgba(0,0,0,.85);font-size:1.15rem;line-height:1.75;word-spacing:.1em;letter-spacing:0;font-style:italic;text-align:justify}
+.quoteblock blockquote{margin:0;padding:0;border:0}
+.quoteblock blockquote:before{content:"\201c";float:left;font-size:2.75em;font-weight:bold;line-height:.6em;margin-left:-.6em;color:#7a2518;text-shadow:0 1px 2px rgba(0,0,0,.1)}
+.quoteblock blockquote>.paragraph:last-child p{margin-bottom:0}
+.quoteblock .attribution{margin-top:.5em;margin-right:.5ex;text-align:right}
+.quoteblock .quoteblock{margin-left:0;margin-right:0;padding:.5em 0;border-left:3px solid rgba(0,0,0,.6)}
+.quoteblock .quoteblock blockquote{padding:0 0 0 .75em}
+.quoteblock .quoteblock blockquote:before{display:none}
+.verseblock{margin:0 1em 1.25em 1em}
+.verseblock pre{font-family:"Open Sans","DejaVu Sans",sans;font-size:1.15rem;color:rgba(0,0,0,.85);font-weight:300;text-rendering:optimizeLegibility}
+.verseblock pre strong{font-weight:400}
+.verseblock .attribution{margin-top:1.25rem;margin-left:.5ex}
+.quoteblock .attribution,.verseblock .attribution{font-size:.9375em;line-height:1.45;font-style:italic}
+.quoteblock .attribution br,.verseblock .attribution br{display:none}
+.quoteblock .attribution cite,.verseblock .attribution cite{display:block;letter-spacing:-.05em;color:rgba(0,0,0,.6)}
+.quoteblock.abstract{margin:0 0 1.25em 0;display:block}
+.quoteblock.abstract blockquote,.quoteblock.abstract blockquote p{text-align:left;word-spacing:0}
+.quoteblock.abstract blockquote:before,.quoteblock.abstract blockquote p:first-of-type:before{display:none}
+table.tableblock{max-width:100%;border-collapse:separate}
+table.tableblock td>.paragraph:last-child p>p:last-child,table.tableblock th>p:last-child,table.tableblock td>p:last-child{margin-bottom:0}
+table.spread{width:100%}
+table.tableblock,th.tableblock,td.tableblock{border:0 solid #dedede}
+table.grid-all th.tableblock,table.grid-all td.tableblock{border-width:0 1px 1px 0}
+table.grid-all tfoot>tr>th.tableblock,table.grid-all tfoot>tr>td.tableblock{border-width:1px 1px 0 0}
+table.grid-cols th.tableblock,table.grid-cols td.tableblock{border-width:0 1px 0 0}
+table.grid-all *>tr>.tableblock:last-child,table.grid-cols *>tr>.tableblock:last-child{border-right-width:0}
+table.grid-rows th.tableblock,table.grid-rows td.tableblock{border-width:0 0 1px 0}
+table.grid-all tbody>tr:last-child>th.tableblock,table.grid-all tbody>tr:last-child>td.tableblock,table.grid-all thead:last-child>tr>th.tableblock,table.grid-rows tbody>tr:last-child>th.tableblock,table.grid-rows tbody>tr:last-child>td.tableblock,table.grid-rows thead:last-child>tr>th.tableblock{border-bottom-width:0}
+table.grid-rows tfoot>tr>th.tableblock,table.grid-rows tfoot>tr>td.tableblock{border-width:1px 0 0 0}
+table.frame-all{border-width:1px}
+table.frame-sides{border-width:0 1px}
+table.frame-topbot{border-width:1px 0}
+th.halign-left,td.halign-left{text-align:left}
+th.halign-right,td.halign-right{text-align:right}
+th.halign-center,td.halign-center{text-align:center}
+th.valign-top,td.valign-top{vertical-align:top}
+th.valign-bottom,td.valign-bottom{vertical-align:bottom}
+th.valign-middle,td.valign-middle{vertical-align:middle}
+table thead th,table tfoot th{font-weight:bold}
+tbody tr th{display:table-cell;line-height:1.6;background:#f7f8f7}
+tbody tr th,tbody tr th p,tfoot tr th,tfoot tr th p{color:rgba(0,0,0,.8);font-weight:bold}
+p.tableblock>code:only-child{background:none;padding:0}
+p.tableblock{font-size:1em}
+td>div.verse{white-space:pre}
+ol{margin-left:1.75em}
+ul li ol{margin-left:1.5em}
+dl dd{margin-left:1.125em}
+dl dd:last-child,dl dd:last-child>:last-child{margin-bottom:0}
+ol>li p,ul>li p,ul dd,ol dd,.olist .olist,.ulist .ulist,.ulist .olist,.olist .ulist{margin-bottom:.625em}
+ul.unstyled,ol.unnumbered,ul.checklist,ul.none{list-style-type:none}
+ul.unstyled,ol.unnumbered,ul.checklist{margin-left:.625em}
+ul.checklist li>p:first-child>.fa-check-square-o:first-child,ul.checklist li>p:first-child>input[type="checkbox"]:first-child{margin-right:.25em}
+ul.checklist li>p:first-child>input[type="checkbox"]:first-child{position:relative;top:1px}
+ul.inline{margin:0 auto .625em auto;margin-left:-1.375em;margin-right:0;padding:0;list-style:none;overflow:hidden}
+ul.inline>li{list-style:none;float:left;margin-left:1.375em;display:block}
+ul.inline>li>*{display:block}
+.unstyled dl dt{font-weight:400;font-style:normal}
+ol.arabic{list-style-type:decimal}
+ol.decimal{list-style-type:decimal-leading-zero}
+ol.loweralpha{list-style-type:lower-alpha}
+ol.upperalpha{list-style-type:upper-alpha}
+ol.lowerroman{list-style-type:lower-roman}
+ol.upperroman{list-style-type:upper-roman}
+ol.lowergreek{list-style-type:lower-greek}
+.hdlist>table,.colist>table{border:0;background:none}
+.hdlist>table>tbody>tr,.colist>table>tbody>tr{background:none}
+td.hdlist1{padding-right:.75em;font-weight:bold}
+td.hdlist1,td.hdlist2{vertical-align:top}
+.literalblock+.colist,.listingblock+.colist{margin-top:-.5em}
+.colist>table tr>td:first-of-type{padding:0 .75em;line-height:1}
+.colist>table tr>td:last-of-type{padding:.25em 0}
+.thumb,.th{line-height:0;display:inline-block;border:solid 4px #fff;-webkit-box-shadow:0 0 0 1px #ddd;box-shadow:0 0 0 1px #ddd}
+.imageblock.left,.imageblock[style*="float: left"]{margin:.25em .625em 1.25em 0}
+.imageblock.right,.imageblock[style*="float: right"]{margin:.25em 0 1.25em .625em}
+.imageblock>.title{margin-bottom:0}
+.imageblock.thumb,.imageblock.th{border-width:6px}
+.imageblock.thumb>.title,.imageblock.th>.title{padding:0 .125em}
+.image.left,.image.right{margin-top:.25em;margin-bottom:.25em;display:inline-block;line-height:0}
+.image.left{margin-right:.625em}
+.image.right{margin-left:.625em}
+a.image{text-decoration:none}
+span.footnote,span.footnoteref{vertical-align:super;font-size:.875em}
+span.footnote a,span.footnoteref a{text-decoration:none}
+span.footnote a:active,span.footnoteref a:active{text-decoration:underline}
+#footnotes{padding-top:.75em;padding-bottom:.75em;margin-bottom:.625em}
+#footnotes hr{width:20%;min-width:6.25em;margin:-.25em 0 .75em 0;border-width:1px 0 0 0}
+#footnotes .footnote{padding:0 .375em;line-height:1.3;font-size:.875em;margin-left:1.2em;text-indent:-1.2em;margin-bottom:.2em}
+#footnotes .footnote a:first-of-type{font-weight:bold;text-decoration:none}
+#footnotes .footnote:last-of-type{margin-bottom:0}
+#content #footnotes{margin-top:-.625em;margin-bottom:0;padding:.75em 0}
+.gist .file-data>table{border:0;background:#fff;width:100%;margin-bottom:0}
+.gist .file-data>table td.line-data{width:99%}
+div.unbreakable{page-break-inside:avoid}
+.big{font-size:larger}
+.small{font-size:smaller}
+.underline{text-decoration:underline}
+.overline{text-decoration:overline}
+.line-through{text-decoration:line-through}
+.aqua{color:#00bfbf}
+.aqua-background{background-color:#00fafa}
+.black{color:#000}
+.black-background{background-color:#000}
+.blue{color:#0000bf}
+.blue-background{background-color:#0000fa}
+.fuchsia{color:#bf00bf}
+.fuchsia-background{background-color:#fa00fa}
+.gray{color:#606060}
+.gray-background{background-color:#7d7d7d}
+.green{color:#006000}
+.green-background{background-color:#007d00}
+.lime{color:#00bf00}
+.lime-background{background-color:#00fa00}
+.maroon{color:#600000}
+.maroon-background{background-color:#7d0000}
+.navy{color:#000060}
+.navy-background{background-color:#00007d}
+.olive{color:#606000}
+.olive-background{background-color:#7d7d00}
+.purple{color:#600060}
+.purple-background{background-color:#7d007d}
+.red{color:#bf0000}
+.red-background{background-color:#fa0000}
+.silver{color:#909090}
+.silver-background{background-color:#bcbcbc}
+.teal{color:#006060}
+.teal-background{background-color:#007d7d}
+.white{color:#bfbfbf}
+.white-background{background-color:#fafafa}
+.yellow{color:#bfbf00}
+.yellow-background{background-color:#fafa00}
+span.icon>.fa{cursor:default}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note:before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip:before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning:before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution:before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important:before{content:"\f06a";color:#bf0000}
+.conum[data-value]{display:inline-block;color:#fff!important;background-color:rgba(0,0,0,.8);-webkit-border-radius:100px;border-radius:100px;text-align:center;font-size:.75em;width:1.67em;height:1.67em;line-height:1.67em;font-family:"Open Sans","DejaVu Sans",sans-serif;font-style:normal;font-weight:bold}
+.conum[data-value] *{color:#fff!important}
+.conum[data-value]+b{display:none}
+.conum[data-value]:after{content:attr(data-value)}
+pre .conum[data-value]{position:relative;top:-.125em}
+b.conum *{color:inherit!important}
+.conum:not([data-value]):empty{display:none}
+h1,h2{letter-spacing:-.01em}
+dt,th.tableblock,td.content{text-rendering:optimizeLegibility}
+p,td.content{letter-spacing:-.01em}
+p strong,td.content strong{letter-spacing:-.005em}
+p,blockquote,dt,td.content{font-size:1.0625rem}
+p{margin-bottom:1.25rem}
+.sidebarblock p,.sidebarblock dt,.sidebarblock td.content,p.tableblock{font-size:1em}
+.exampleblock>.content{background-color:#fffef7;border-color:#e0e0dc;-webkit-box-shadow:0 1px 4px #e0e0dc;box-shadow:0 1px 4px #e0e0dc}
+.print-only{display:none!important}
+@media print{@page{margin:1.25cm .75cm}
+*{-webkit-box-shadow:none!important;box-shadow:none!important;text-shadow:none!important}
+a{color:inherit!important;text-decoration:underline!important}
+a.bare,a[href^="#"],a[href^="mailto:"]{text-decoration:none!important}
+a[href^="http:"]:not(.bare):after,a[href^="https:"]:not(.bare):after,a[href^="mailto:"]:not(.bare):after{content:"(" attr(href) ")";display:inline-block;font-size:.875em;padding-left:.25em}
+abbr[title]:after{content:" (" attr(title) ")"}
+pre,blockquote,tr,img{page-break-inside:avoid}
+thead{display:table-header-group}
+img{max-width:100%!important}
+p,blockquote,dt,td.content{font-size:1em;orphans:3;widows:3}
+h2,h3,#toctitle,.sidebarblock>.content>.title{page-break-after:avoid}
+#toc,.sidebarblock,.exampleblock>.content{background:none!important}
+#toc{border-bottom:1px solid #ddddd8!important;padding-bottom:0!important}
+.sect1{padding-bottom:0!important}
+.sect1+.sect1{border:0!important}
+#header>h1:first-child{margin-top:1.25rem}
+body.book #header{text-align:center}
+body.book #header>h1:first-child{border:0!important;margin:2.5em 0 1em 0}
+body.book #header .details{border:0!important;display:block;padding:0!important}
+body.book #header .details span:first-child{margin-left:0!important}
+body.book #header .details br{display:block}
+body.book #header .details br+span:before{content:none!important}
+body.book #toc{border:0!important;text-align:left!important;padding:0!important;margin:0!important}
+body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-break-before:always}
+.listingblock code[data-lang]:before{display:block}
+#footer{background:none!important;padding:0 .9375em}
+#footer-text{color:rgba(0,0,0,.6)!important;font-size:.9em}
+.hide-on-print{display:none!important}
+.print-only{display:block!important}
+.hide-for-print{display:none!important}
+.show-for-print{display:inherit!important}}
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prettify/r298/prettify.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prettify/r298/prettify.min.js"></script>
+<script>document.addEventListener('DOMContentLoaded', prettyPrint)</script>
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel0">
+<li><a href="#grengine-user-manual">Grengine User Manual</a>
+<ul class="sectlevel1">
+<li><a href="#features">Features</a></li>
+<li><a href="#running-scripts-with-grengine">Running Scripts with Grengine</a>
+<ul class="sectlevel2">
+<li><a href="#basic-usage">Basic Usage</a></li>
+<li><a href="#behind-the-scenes-and-performance">Behind the Scenes and Performance</a></li>
+<li><a href="#separating-loading-creating-running-of-scripts">Separating Loading/Creating/Running of Scripts</a></li>
+<li><a href="#the-source-interface">The Source Interface</a></li>
+<li><a href="#tweaking-performance-with-the-sourcefactory">Tweaking Performance with the SourceFactory</a></li>
+</ul>
+</li>
+<li><a href="#grengine-as-a-script-container">Grengine as a Script Container</a>
+<ul class="sectlevel2">
+<li><a href="#directory-based-grengine">Directory-based Grengine</a></li>
+<li><a href="#script-dependencies">Script Dependencies</a></li>
+<li><a href="#sources-layers">Sources Layers</a></li>
+<li><a href="#container-maintenance">Container Maintenance</a></li>
+<li><a href="#grengine-exceptions">Grengine Exceptions</a></li>
+</ul>
+</li>
+<li><a href="#advanced-usage">Advanced Usage</a>
+<ul class="sectlevel2">
+<li><a href="#session-separation">Session Separation</a></li>
+<li><a href="#class-loading-and-garbage-collection">Class Loading and Garbage Collection</a></li>
+<li><a href="#grengine-and-grape">Grengine and Grape</a></li>
+</ul>
+</li>
+<li><a href="#grengine-as-a-framework">Grengine as a Framework</a>
+<ul class="sectlevel2">
+<li><a href="#compiler-code-and-bytecode">Compiler, Code and Bytecode</a></li>
+<li><a href="#source-based-class-loaders">Source-based Class Loaders</a></li>
+<li><a href="#engine-and-grengine">Engine and Grengine</a></li>
+<li><a href="#miscellaneous">Miscellaneous</a></li>
+</ul>
+</li>
+<li><a href="#enjoy">Enjoy!</a></li>
+<li><a href="#release-notes">Release Notes</a>
+<ul class="sectlevel2">
+<li><a href="#grengine-3">Grengine 3</a></li>
+<li><a href="#grengine-2">Grengine 2</a></li>
+<li><a href="#grengine-1">Grengine 1</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="paragraph">
+<p><span class="image"><a class="image" href="https://www.artecat.ch/grengine/"><img src="grengine.jpg" alt="Grengine"></a></span></p>
+</div>
+</div>
+</div>
+<h1 id="grengine-user-manual" class="sect0">Grengine User Manual</h1>
+<div class="openblock partintro">
+<div class="content">
+<a href="https://www.artecat.ch/grengine/">Grengine</a> is an engine for running and embedding Groovy in a Java VM.
+</div>
+</div>
+<div class="sect1">
+<h2 id="features">Features</h2>
+<div class="sectionbody">
+<div class="ulist">
+<ul>
+<li>
+<p><em>Convenience and Speed</em>: Scripts can be run very conveniently
+and are automatically only (re-)compiled when necessary.
+All operations are automatically thread-safe and Grengine never
+creates additional threads to do its work.</p>
+</li>
+<li>
+<p><em>Flexibility and Control</em>: Beyond useful default behavior, many things
+can be configured and tweaked and there is full control over the
+"life cycle" of a script: script compilation, class loading,
+script instance creation and script running.</p>
+</li>
+<li>
+<p><em>Extensibility</em>: Where configurable options are not enough,
+it is usually straightforward which classes to override or
+which interfaces to implement differently to get exactly
+the behavior you want.</p>
+</li>
+<li>
+<p><em>Security</em>: The same compiled bytecode can be used very easily in multiple
+class loaders, thus fully separating static variables in scripts.
+This allows, for example, to implement separate user sessions in
+a web server, so that no user information can leak between sessions
+even if the same Groovy scripts are used for all users.</p>
+</li>
+<li>
+<p><em>Safety</em>: Grengine works with Java VM 8 or later and works with
+basically any Groovy version that runs on Java 8 or later.
+The interface between Grengine and the Groovy JDK is so narrow
+and so widely used that it is very unlikely that new Groovy versions
+will break interoperability with Grengine, and even if it was so,
+adapting Grengine would almost certainly be a small matter
+with no impact on the Grengine API.
+(The older Grengine 1 works with Java VM 6 or later and Groovy
+versions back to 1.7.5, but even older Groovy versions could
+be supported with minor tweaks to the Grengine 1 source).</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="running-scripts-with-grengine">Running Scripts with Grengine</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="basic-usage">Basic Usage</h3>
+<div class="paragraph">
+<p>With Grengine, a script can essentially be run by script text,
+script file or script URL:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine gren = new Grengine();
+gren.run("println 'Hello World!'");
+gren.run(new File("MyScript.groovy"));
+gren.run(new URL("http://somewhere.org/MyScript.groovy"));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A binding can optionally be indicated by passing a <code>Binding</code>
+object or a <code>Map&lt;String,Object&gt;</code>.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Map&lt;String,Object&gt; map = new HashMap&lt;String,Object&gt;();
+map.put("x", 5);
+map.put("y", 2);
+Binding binding = new Binding(map);
+gren.run("println x+y", binding);
+gren.run(scriptFile, map);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In Groovy, passing a map is easier than in Java:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">gren.run('println x+y', [ 'x' : 5, 'y' : 2 ])</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For more convenient use in Java, Grengine provides an easier way to
+construct a <code>Binding</code> by indicating alternating <code>String</code> and <code>Object</code>
+parameters in pairs:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">gren.run("println x+y", gren.binding("x", 5, "y", 2));</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="behind-the-scenes-and-performance">Behind the Scenes and Performance</h3>
+<div class="paragraph">
+<p>What happens "behind the scenes" when you run a Groovy script?</p>
+</div>
+<div class="paragraph">
+<p>A simple Groovy script like "return 2" is implicitly roughly equivalent
+to the following Java source:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">public class SomeGeneratedClassName extends groovy.lang.Script {
+  public Object run() { return 2; }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>First this source is compiled. (Unlike some other script languages,
+Groovy is always compiled to bytecode for a Java VM; it is never
+interpreted directly.) In this simple case, with no inner classes,
+the result is a single byte array (<code>byte[]</code>) associated with the class
+name "SomeGeneratedClassName".</p>
+</div>
+<div class="paragraph">
+<p>The next step is loading the class, for that you need a <code>java.lang.ClassLoader</code>.
+From the outside, the class is loaded by calling</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Class&lt;?&gt; clazz = classLoader.loadClass("SomeGeneratedClassName");</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Inside the class loader, at the first request to load the class by name,
+the class is "defined". This is the moment when the bytecode is actually
+loaded into the VM as an instance of <code>java.lang.Class</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Class&lt;?&gt; clazz = this.defineClass("SomeGeneratedClassName", bytes, 0, bytes.length);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It is important to be aware that a class can only be defined <strong><em>once</em></strong>
+per class loader instance.
+There is no way to "unload" a class in a Java VM or to replace the bytecode.
+If a class loader and its classes are not used (referenced) any more, it is
+eventually garbage collected by the VM.
+If you need a new version of the same class, at least implicitly a new class
+loader instance is always required.</p>
+</div>
+<div class="paragraph">
+<p>Once a class is loaded, an instance can be created and the script
+can be run, optionally with a specific binding:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Script script = (Script)clazz.newInstance();
+script.setBinding(binding);
+Object obj = script.run();</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="text-based-scripts">Text-based Scripts</h4>
+<div class="paragraph">
+<p>Let&#8217;s see what the "SomeGeneratedClassName" is when using the Groovy JDK
+(<code>GroovyShell</code> and <code>GroovyClassLoader</code>) and when using Grengine:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">String scriptText = "println this.class.name";
+GroovyShell shell = new GroovyShell();
+shell.evaluate(scriptText);
+shell.evaluate(scriptText);
+GroovyClassLoader gcl = new GroovyClassLoader();
+((Script)gcl.parseClass(scriptText).newInstance()).run();
+((Script)gcl.parseClass(scriptText).newInstance()).run();
+Grengine gren = new Grengine();
+gren.run(scriptText);
+gren.run(scriptText);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will output something like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Script1
+Script2
+script14128476235402024152416
+script14128476235552024152416
+ScriptE15A19DFB5A38B7835981B7078A86D3B
+ScriptE15A19DFB5A38B7835981B7078A86D3B</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In case of the Groovy JDK, the generated class name is different
+for each call.
+(This may be a bit difficult to spot in case of the <code>GroovyClassLoader</code>,
+because only two digits are different; actually <code>System.nanoTime()</code> is
+used to generate the middle part of the class name.)
+With Grengine, the name is always the same for the same script text:
+"Script" plus the MD5 hash of the script text.</p>
+</div>
+<div class="paragraph">
+<p>In terms of performance, Grengine makes a big difference if you run
+the same script text multiple times, but is still slower than running
+an already created <code>Script</code> instance:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">long t0 = System.nanoTime();
+for (int i=0; i&lt;1000; i++) shell.evaluate("return 2");
+long t1 = System.nanoTime();
+for (int i=0; i&lt;1000; i++) gren.run("return 2");
+long t2 = System.nanoTime();
+for (int i=0; i&lt;1000; i++) script.run();
+long t3 = System.nanoTime();
+System.out.printf("GroovyShell: %8.3f ms%n", (t1-t0)/1000000.0);
+System.out.printf("Grengine:    %8.3f ms%n", (t2-t1)/1000000.0);
+System.out.printf("Script:      %8.3f ms%n", (t3-t2)/1000000.0);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s the output I got on my computer:
+<span class="footnote" id="_footnote_performance">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>GroovyShell: 4807.417 ms
+Grengine:      54.801 ms
+Script:         0.262 ms</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The difference between the <code>GroovyShell</code> and Grengine is so huge
+because the <code>GroovyShell</code> compiles each time and compiling is
+very expensive compared to everything else (except if the script
+itself did something that took a long time, of course).
+The difference between Grengine and calling the script directly
+comes from the initial compilation plus (for each call) the overhead
+of calculating the MD5 hash, looking up the already compiled
+(and loaded) class and creating a script instance.</p>
+</div>
+<div class="paragraph">
+<p>Note that you can optionally also define the desired class name
+for a script:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">gren.run("println this.class.name", "MyScript");
+shell.evaluate("println this.class.name", "MyScript");</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This will have no effect if the script text explicitly declares
+a class.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="file-based-scripts">File-based Scripts</h4>
+<div class="paragraph">
+<p>For script files, the default class name is simply the file name
+(without extension), independently of whether you use Grengine or
+the Groovy JDK.</p>
+</div>
+<div class="paragraph">
+<p>Grengine identifies script files by the canonical file path
+(with fallback to the absolute file path if the canonical file
+path cannot be determined, which is very rarely the case in practice).
+In addition, <code>File.lastModified()</code> is queried before each run and,
+if the file had been modified, it is recompiled, but only then.
+In contrast, the <code>GroovyShell</code> compiles each time.
+This leads to similar performance differences when running a script
+file that contains "return 2" a 1000 times:
+<span class="footnoteref">[<a class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>GroovyShell: 4966.928 ms
+Grengine:      30.594 ms</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For Grengine the main overhead (at least when running a script on
+a local drive) is <code>File.lastModified()</code>, which can be an astonishingly
+slow call, especially on Windows.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="url-based-scripts">URL-based Scripts</h4>
+<div class="paragraph">
+<p>For script URLs, Grengine identifies the script by its URL and, by default,
+the script text at the URL is only read once and then assumed never
+to change again. This default is based on the assumption that typically
+when a URL is used, getting the script text is a slow operation and,
+unlike with files, there is no other way to find out whether the script
+text at the URL has changed.</p>
+</div>
+<div class="paragraph">
+<p>There are several ways to tweak and optimize the defaults of Grengine
+regarding scripts by text, file and URL, which will be explained
+a bit later on.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="separating-loading-creating-running-of-scripts">Separating Loading/Creating/Running of Scripts</h3>
+<div class="paragraph">
+<p>With Grengine (as with the Groovy JDK) it is possible to separate class
+loading from object creation and from running. Grengine offers a lot of
+convenience here, again:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Class&lt;?&gt; clazz;
+clazz = gren.load("return 2");
+clazz = gren.load("return 2", "MyDesiredClassName");
+clazz = gren.load(scriptFile);
+clazz = gren.load(scriptUrl);
+Script script;
+script = gren.create(clazz);
+script = gren.create("return 2");
+script = gren.create("return 2", "MyDesiredClassName");
+script = gren.create(scriptFile);
+script = gren.create(scriptUrl);
+Object obj;
+obj = gren.run(script);
+obj = gren.run(script, binding);
+obj = gren.run(script, map);
+obj = gren.run("return 2");
+obj = gren.run("return x", binding);
+obj = gren.run("return x", map);
+obj = gren.run("return x", gren.binding("x", 5));
+obj = gren.run("return 2", "MyDesiredClassName");
+obj = gren.run("return x", "MyDesiredClassName", binding);
+// ...</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="the-source-interface">The Source Interface</h3>
+<div class="paragraph">
+<p>The interface <code>Source</code> abstracts a Groovy script source. It has essentially
+the following two methods:</p>
+</div>
+<div class="listingblock">
+<div class="title">Source</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">String getId();
+long getLastModified();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For sources from script text, file and URL, there are interfaces
+that extend <code>Source</code>, with the following (pretty obvious) additional
+methods:</p>
+</div>
+<div class="listingblock">
+<div class="title">TextSource extends Source</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">String getText();</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">FileSource extends Source</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">File getFile();</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">UrlSource extends Source</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">URL getUrl();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For the default implementations, the source ID is as follows:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>DefaultTextSource</code>: The MD5 hash of the script text.</p>
+</li>
+<li>
+<p><code>DefaultFileSource</code>: The canonical file path of the script file
+(with fallback to the absolute file path of the script file, if
+the canonical file path cannot be obtained, which is very rarely
+the case in practice).</p>
+</li>
+<li>
+<p><code>DefaultUrlSource</code>: The URL.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Last modified is as follows:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>DefaultTextSource</code>: 0</p>
+</li>
+<li>
+<p><code>DefaultFileSource</code>: <code>File.lastModified()</code></p>
+</li>
+<li>
+<p><code>DefaultUrlSource</code>: 0</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Grengine provides convenience methods for getting <code>Source</code> instances,
+and these sources can also be directly used to load classes, create
+<code>Script</code> instances and to run scripts:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Source textSource = gren.source("return 2");
+Source textSourceWithName = gren.source("return 2", "MyScript");
+Source fileSource = gren.source(scriptFile);
+Source urlSource = gren.source(scriptUrl);
+System.out.println(textSource.getId() + " - " + textSource.getLastModified());
+System.out.println(textSourceWithName.getId() + " - " + textSourceWithName.getLastModified());
+System.out.println(fileSource.getId() + " - " + fileSource.getLastModified());
+System.out.println(urlSource.getId() + " - " + urlSource.getLastModified());
+clazz = gren.load(textSource);
+script = gren.create(fileSource);
+obj = gren.run(urlSource, gren.binding("x", 5));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here&#8217;s a sample output of the above:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>/groovy/script/Script61E5513229BA3D53A09D057769AC99CC - 0
+/groovy/script/Script61E5513229BA3D53A09D057769AC99CC/MyScript - 0
+/private/var/folders/38/r0n49vmn7zg5dffk79_tgpl80000gn/T/MyScript.groovy - 1912774471000
+file:/var/folders/38/r0n49vmn7zg5dffk79_tgpl80000gn/T/MyScript.groovy - 0</pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="tweaking-performance-with-the-sourcefactory">Tweaking Performance with the SourceFactory</h3>
+<div class="paragraph">
+<p>In order to create sources, Grengine uses a <code>SourceFactory</code>, by default
+set to <code>new DefaultSourceFactory()</code>, which provides instances of the default
+source implementations.
+Alternatively, the <code>DefaultSourceFactory</code> can be constructed with different
+settings:
+<span class="footnoteref">[<a class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</span></p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine grenDefault = new Grengine();
+Grengine grenTweaked= new Grengine.Builder()
+        .setSourceFactory(new DefaultSourceFactory.Builder()
+                .setTrackTextSourceIds(true)
+                .setTrackFileSourceLastModified(true)
+                .build())
+        .build();
+grenDefault.run("return 2");
+grenTweaked.run("return 2");
+grenDefault.run(scriptFile);
+grenTweaked.run(scriptFile);
+long t0 = System.nanoTime();
+for (int i=0; i&lt;1000; i++) grenDefault.run("return 2");
+long t1 = System.nanoTime();
+for (int i=0; i&lt;1000; i++) grenTweaked.run("return 2");
+long t2 = System.nanoTime();
+for (int i=0; i&lt;1000; i++) grenDefault.run(scriptFile);
+long t3 = System.nanoTime();
+for (int i=0; i&lt;1000; i++) grenTweaked.run(scriptFile);
+long t4 = System.nanoTime();
+System.out.printf("Script Text - Default:  %8.3f ms%n", (t1-t0)/1000000.0);
+System.out.printf("Script Text - Tweaked:  %8.3f ms%n", (t2-t1)/1000000.0);
+System.out.printf("Script File - Default:  %8.3f ms%n", (t3-t2)/1000000.0);
+System.out.printf("Script File - Tweaked:  %8.3f ms%n", (t4-t3)/1000000.0);</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>Script Text - Default:    44.138 ms
+Script Text - Tweaked:    11.271 ms
+Script File - Default:    19.193 ms
+Script File - Tweaked:    11.873 ms</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The options of the <code>DefaultSourceFactory.Builder</code> in detail:</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>setTrackTextSourceIds(boolean track)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Caches a map of script text to source ID,
+ in order to reduce the number of MD5 hash calculations
+ for text-based sources.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>setTrackFileSourceLastModified(boolean track)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Caches a map of source ID to file last modified,
+ in order to reduce the number of <code>file.lastModified()</code> calls
+ for file-based sources.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>setFileLastModifiedTrackingLatencyMs(long latencyMs)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sets the latency for checking if a file has been modified;
+ default is 1000 ms (one second), which is also often the resolution
+ of <code>file.lastModified()</code> in practice.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>setTrackUrlContent(boolean track)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Caches a MD5 hash of the  content (script text) of all used URLs
+ and each time a URL is given to the Grengine, gets the URL content
+ again if a configurable latency period has expired
+ (and recompiles then, if necessary).</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>setUrlTrackingLatencyMs(long latencyMs)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Sets the latency for checking if URL content has been modified;
+ default is 60000 ms (one minute).</p></td>
+</tr>
+</tbody>
+</table>
+<div class="paragraph">
+<p>For further optimizations, you could override some methods in
+<code>DefaultSourceFactory</code> or provide your own implementation of the
+<code>SourceFactory</code> interface.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="grengine-as-a-script-container">Grengine as a Script Container</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="directory-based-grengine">Directory-based Grengine</h3>
+<div class="paragraph">
+<p>Often you may have some Groovy scripts in a directory which you
+may want to run directly or use as a library or API. To make things
+concrete, suppose there are the following two files in the current
+working directory:</p>
+</div>
+<div class="listingblock">
+<div class="title">Util.groovy</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">class Util {
+  def concat(def a, def b) { return "$a:$b" }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="title">Test.groovy</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">println new Util().concat('xx', 'yy')</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now create and use a Grengine based on these sources:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">File scriptDir = new File(".");
+Grengine gren = new Grengine(scriptDir);
+gren.run(new File(scriptDir, "Test.groovy"));
+gren.run("println new Util().concat('xx', 'yy')");</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>xx:yy
+xx:yy</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By default, changes in the sources in the directory are detected
+with a latency of 5 seconds. This includes modifications of file
+content, as well as creating and deleting files in the directory.
+If changes are detected, all sources in the directory are recompiled,
+with dependencies between the scripts fully considered by the compiler.</p>
+</div>
+<div class="paragraph">
+<p>Example (in Groovy):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def utilFile = new File(scriptDir, 'Util.groovy')
+def newUtilFile = new File(scriptDir, 'NewUtil.groovy')
+def testFile = new File(scriptDir, 'Test.groovy')
+gren.run(testFile)
+utilFile.delete()
+newUtilFile.setText('class Util { def concat(def a, def b) { return "$a--$b" } }')
+testFile.setText('println new Util().concat("aa", "bb")')
+gren.run(testFile)
+Thread.sleep(6000)
+gren.run(testFile)</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>xx:yy
+xx:yy
+aa--bb</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>By default, only files with extension <code>.groovy</code> in the script directory
+are considered and subdirectories are ignored.
+Optionally, you can change both, as follows:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def config = new CompilerConfiguration()
+config.setScriptExtensions([ "groovy", "funky" ] as Set)
+def gren = new Grengine(config, scriptDir, DirMode.WITH_SUBDIRS_RECURSIVE)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="script-dependencies">Script Dependencies</h3>
+<div class="paragraph">
+<p>There are again quite a few differences between what Grengine does and
+what different classes in the Groovy JDK do in similar situations.
+Let&#8217;s assume again that there are the two files "Util.groovy" and "Test.java"
+in the current working directory.
+With a <code>GroovyShell</code> from the Groovy JDK:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def shell = new GroovyShell()
+shell.parse('Util.groovy')
+shell.evaluate('Test.groovy')</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>"xx:yy" is printed, but if you try the same with a default Grengine
+(one that is not directory-based):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def gren = new Grengine()
+gren.load('Util.groovy')
+gren.run('Test.groovy')</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>execution fails at the last line with a <code>CompileException</code> stating that
+the class <code>Util</code> could not be resolved.</p>
+</div>
+<div class="paragraph">
+<p>Why?</p>
+</div>
+<div class="paragraph">
+<p>Grengine strictly separates between scripts in its "container", i.e.
+scripts that are defined for the Grengine when it is created, and
+scripts that are given to be run (or created or loaded) by the
+Grengine at runtime.</p>
+</div>
+<div class="paragraph">
+<p>The latter scripts run each in their own individual class loader.
+They all share the same parent class loader, which includes all of the
+compiled "container" script classes, but they do not see each other&#8217;s
+classes.
+These individual class loaders are managed by what is called a
+<code>TopCodeCache</code> in Grengine.</p>
+</div>
+<div class="paragraph">
+<p>This more structured approach has some advantages.</p>
+</div>
+<div class="paragraph">
+<p>The approach in the Groovy JDK&#8217;s <code>GroovyShell</code> is well suited for interactive
+use, where you may usually want to be able to add code script by script.
+Beyond that, depending on the use case, this behavior may be more
+problematic:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Thread-safety: Which thread comes first can in general influence
+behavior in calls in other threads.</p>
+</li>
+<li>
+<p>Script dependencies: For example, two classes in separate scripts
+may refer to each other; this cannot be handled with sequential calls.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The correct handling of dependencies between scripts is also a (minor) issue
+if you add a script directory to a <code>GroovyClassLoader</code>, but that approach
+already covers more cases in practice. For example</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def loader = new GroovyClassLoader()
+loader.addClasspath('.')
+def clazz = loader.loadClass('Test')
+clazz.newInstance().run()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>prints out "xx:yy". The <code>GroovyClassLoader</code> tries to load classes by name,
+i.e. because <code>Test.groovy</code> references a class <code>Util</code>, the loader searches
+for a file <code>Util.groovy</code> in its classpath and, if found, compiles it and
+loads the class.
+This works only if the file name matches the class name. For example, in Groovy
+a file <code>Extras.groovy</code> might contain several non-inner classes, including
+<code>Util</code> (which is not possible in Java) - in that case the loader would not
+find the class <code>Util</code> (unless <code>Test.groovy</code> or another of its dependencies
+would first refer to a class <code>Extras</code> and there was a class <code>Extras</code> in
+<code>Extras.groovy</code>).</p>
+</div>
+<div class="paragraph">
+<p>If you need 100% correct handling of dependencies using the Groovy JDK,
+you use a <code>GroovyScriptEngine</code>, but then you are limited to running only
+the scripts that are defined for the engine.</p>
+</div>
+<div class="paragraph">
+<p>Grengine allows to do both, and more, as will be shown shortly.</p>
+</div>
+<div class="paragraph">
+<p>For the moment note that you can simply use Grengine as the parent class
+loader of a <code>GroovyShell</code> or <code>GroovyClassLoader</code> etc.:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def gren = new Grengine(new File('.'))
+def shell = new GroovyShell(gren.asClassLoader())
+shell.evaluate("println new Util().concat('aa', 'bb')")</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Or you can have it the other way round, i.e. use a <code>GroovyClassLoader</code>
+as the parent class loader of Grengine:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def loader = new GroovyClassLoader()
+loader.addClasspath('.')
+def gren = new Grengine(loader)
+def clazz = gren.loadClass('Test')
+clazz.newInstance().run()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Since with Grengine you can add more controlled sets of Groovy sources
+"between" the top Grengine API and the <code>GroovyClassLoader</code> you can often
+have both the flexibility of the Groovy JDK and the control and additional
+features of Grengine, depending on what you need.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="sources-layers">Sources Layers</h3>
+<div class="paragraph">
+<p>In general, a Grengine&#8217;s "container" scripts can consist of any number
+of layers of sources:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">List&lt;Sources&gt; sourcesLayers = ...;
+Grengine gren = new Grengine.Builder()
+        .setSourcesLayers(sourcesLayers)
+        .build();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>These sources are compiled layer by layer and each layers implicitly gets its
+own class loader instance.
+The lowest layer can only see its scripts (and all classes in the parent
+class loader).
+The next layer can see its scripts and everything below, and so on.
+Each class loader in the top code cache can see all of that and its own script.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre>----- ----- ----- ----- -----   top code cache       |
+-----------------------------   sources layer n      |
+-----------------------------   sources layer n-1    |  Grengine
+-----------------------------   ...                  |
+-----------------------------   sources layer 2      |
+-----------------------------   sources layer 1      |
+-----------------------------   parent class loader
+-----------------------------   ...
+-----------------------------   root class loader</pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now, it can happen&#8201;&#8212;&#8201;by accident or by design&#8201;&#8212;&#8201;that a class with
+the same name appears more than once in different class loaders
+in this layered structure.</p>
+</div>
+<div class="paragraph">
+<p>Which class should be loaded?</p>
+</div>
+<div class="paragraph">
+<p>Traditionally, in Java it was recommended to load from the lowest possible
+class loader, i.e. "parent-first", also in order to economize resources.
+Nowadays the opposite, let me call it "current-first", is not uncommon.
+For example, some Java web application containers prefer to load classes from
+the webapp first before loading classes from the container.
+In general, "parent-first" is maybe more suited in "static" setups and
+"current-first" more in "dynamic" setups, like maybe also often with Groovy
+scripts.</p>
+</div>
+<div class="paragraph">
+<p>In Grengine, the default for sources layers is "current-first", but for
+the top code layer it is "parent-first", in order to give the precompiled
+layers (with their full dependency awareness) precedence over a dynamically
+compiled version.</p>
+</div>
+<div class="paragraph">
+<p>In other words, for a directory-based Grengine:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">File scriptDir = new File(".");
+Grengine gren = new Grengine(scriptDir);
+gren.run(new File(scriptDir, "Test.groovy"));
+gren.run(new File(someOtherScriptDir, "Test2.groovy"));</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>"Test.groovy" is run from the compiled code in the only sources layer
+and no extra copy will be made in the top code cache.
+"Test2.groovy", in turn, is compiled and made part of the top code cache.
+In terms of latency, this means, in this case, that updates to "Test.groovy"
+will have a latency of 5 seconds, but for "Test2.groovy", it will only be
+the latency of <code>File.lastModified()</code>.</p>
+</div>
+<div class="sect3">
+<h4 id="the-sources-interface">The Sources Interface</h4>
+<div class="paragraph">
+<p>The interface that abstracts sources has essentially the following methods:</p>
+</div>
+<div class="listingblock">
+<div class="title">Sources</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Set&lt;Source&gt; getSourceSet();
+long getLastModified();
+String getName();
+CompilerFactory getCompilerFactory();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The first method gets the set of <code>Source</code> instances contained in the <code>Sources</code>.
+Depending on the implementation, this set may change or not.
+For example, if sources are based on a directory and script files are deleted
+or created, the set will change.
+If so or if the <code>lastModified</code> of any of the <code>Source</code> instances changes, the
+method <code>getLastModified()</code> will return a new value, although typically with
+a configurable latency.
+Providing a name is optional in all provided implementations and (unlike the
+ID of a <code>Source</code>) is not required to be unique. It is recommended, though,
+to chose a name that helps a human reader to identify the <code>Sources</code> instance.
+The compiler factory allows, for example, to define a separate
+compiler configuration for each layer.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="dirbasedsources">DirBasedSources</h4>
+<div class="paragraph">
+<p>Here&#8217;s how to construct a <code>Sources</code> instance based on a directory,
+with all possible options set:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Sources dirBasedSources = new DirBasedSources.Builder(dir)
+        .setDirMode(DirMode.WITH_SUBDIRS_RECURSIVE)
+        .setScriptExtensions("groovy", "funky")
+        .setName("dirbased")
+        .setCompilerFactory(new DefaultGroovyCompilerFactory())
+        .setSourceFactory(new DefaultSourceFactory())
+        .setLatencyMs(200)
+        .build();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The given source factory is used to create <code>Source</code> instances from script
+files.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="fixedsetsources">FixedSetSources</h4>
+<div class="paragraph">
+<p>Here&#8217;s how to construct a <code>Sources</code> instance based on a fixed set of
+<code>Source</code> instances, with all possible options set:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Set&lt;Source&gt; sourceSet = ...;
+Sources fixedSetSources = new FixedSetSources.Builder(sourceSet)
+        .setName("fixed")
+        .setCompilerFactory(new DefaultGroovyCompilerFactory())
+        .setLatencyMs(200)
+        .build();</code></pre>
+</div>
+</div>
+</div>
+<div class="sect3">
+<h4 id="compositesources">CompositeSources</h4>
+<div class="paragraph">
+<p>Here&#8217;s how to construct a <code>Sources</code> instance based on a collection
+of <code>Sources</code> instances, with all possible options set:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Collection&lt;Sources&gt; sourcesCollection = ...;
+Sources compositeSources = new CompositeSources.Builder(sourcesCollection)
+        .setName("composite")
+        .setCompilerFactory(new DefaultGroovyCompilerFactory())
+        .setLatencyMs(200)
+        .build();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note that since <code>CompositeSources</code> implements <code>Sources</code>, <code>CompositeSources</code>
+may be arbitrarily nested.
+And, of course, the concept is extensible, you may implement additional
+classes that implement <code>Sources</code> and compose them into a collection, too.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="source-sources-utilities">Source/Sources Utilities</h4>
+<div class="paragraph">
+<p>See <code>SourceUtil</code> and <code>SourcesUtil</code> for some static utility methods that are
+especially useful in Java, where dealing with sets and collections is usually
+more cumbersome than in Groovy.
+Some examples:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Set&lt;Source&gt; sourceSet;
+sourceSet = SourceUtil.filesToSourceSet(file1, file2, file3);
+sourceSet = SourceUtil.filesToSourceSet(sourceFactory, file1, file2);
+sourceSet = SourceUtil.urlsToSourceSet(url1, url2, url3);
+sourceSet = SourceUtil.sourceArrayToSourceSet(source1, source2, source3);
+Sources sources;
+sources = SourcesUtil.sourceSetToSources(sourceSet, "name");
+sources = SourcesUtil.sourceSetToSources(sourceSet, "name", compilerFactory);</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="container-maintenance">Container Maintenance</h3>
+<div class="paragraph">
+<p>When you create a Grengine based on sources layers and compilation fails,
+you get an exception immediately.
+Later on, if sources have changed and no longer compile without errors,
+you get no exception when using Grengine, instead the last state of Grengine
+where compilation worked remains in use.</p>
+</div>
+<div class="paragraph">
+<p>If you want to know if compilation of sources layers failed, you have two
+options. Either you call:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">GrengineException e = gren.getLastException();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>or you register a callback when creating the engine. For that you have
+to implement the interface <code>UpdateExceptionNotifier</code>:</p>
+</div>
+<div class="listingblock">
+<div class="title">UpdateExceptionNotifier</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">void notify(GrengineException updateException);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>and register it when creating the Grengine:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">UpdateExceptionNotifier notifier = new MyUpdateExceptionNotifier();
+Grengine gren = new Grengine.Builder()
+        .setSourcesLayers(sourcesLayers)
+        .setUpdateExceptionNotifier(notifier)
+        .build();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note that there are no additional threads in a Grengine. The Grengine
+only checks for updated sources when you call any of its methods that
+require it to do so, like load/create/run.</p>
+</div>
+<div class="paragraph">
+<p>In addition to compilation errors, you can optionally also prohibit
+duplicate classes with the same name, within the sources layers or
+between the sources layers and the parent class loader:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine gren = new Grengine.Builder()
+        .setEngine(new LayeredEngine.Builder()
+                .setAllowSameClassNamesInMultipleCodeLayers(false)
+                .setAllowSameClassNamesInParentAndCodeLayers(false)
+                .build()
+        .setSourcesLayers(sourcesLayers)
+        .build();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If set like this, class name conflicts lead to a <code>ClassNameConflictException</code>
+at compile time, which is a subclass of <code>GrengineException</code></p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="grengine-exceptions">Grengine Exceptions</h3>
+<div class="paragraph">
+<p>Grengine defines its own <code>GrengineException</code>. Nothing special, except maybe
+that it also declares a method that allows to obtain the date and time the
+exception had been thrown:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Date date = new GrengineException().getDateThrown();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The following exceptions are subclasses of <code>GrengineException</code>:</p>
+</div>
+<table class="tableblock frame-all grid-all spread">
+<colgroup>
+<col style="width: 50%;">
+<col style="width: 50%;">
+</colgroup>
+<tbody>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CompileException</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exception thrown when compilation failed.
+ Has a method <code>Sources getSources()</code> that provides the sources
+ that failed to compile.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>LoadException</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exception thrown when loading a class failed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>CreateException</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exception thrown when creating an instance of <code>groovy.lang.Script</code>
+ failed.</p></td>
+</tr>
+<tr>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>ClassNameConflictException</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Exception optionally thrown if code layers or code layers and parent
+ class loader contain classes with the same name.
+ Has two extra methods that provide information about which classes
+ in which layers had the same name.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="advanced-usage">Advanced Usage</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="session-separation">Session Separation</h3>
+<div class="paragraph">
+<p>Grengine provides a unique feature that is difficult to achieve
+with the Groovy JDK, except in simple cases:
+The same compiled bytecode, including all compiled sources layers of
+a Grengine and the top code cache can be shared in multiple, completely
+isolated "sessions".</p>
+</div>
+<div class="paragraph">
+<p>Suppose a web application allows its administrator to configure a
+login with some Groovy scripts and the administrator, not much of
+a programmer, more a scripter, writes and configures a simple static
+utility class like this one:</p>
+</div>
+<div class="listingblock">
+<div class="title">LoginUtil.groovy</div>
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">class LoginUtil {
+  static String username
+  static String password
+  static boolean login() {
+    def success = false
+    // do login in some way, using username and password
+    return success
+  }
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now, suppose there is a shared <code>GroovyShell</code> for all user sessions
+in the web application and the directory that contains "LoginUtil.groovy"
+has been added to the <code>GroovyClassLoader</code> of the <code>GroovyShell</code>.
+Finally, during each login, configured scripts like these are run:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def username = ...
+def password = ...
+LoginUtil.username = username
+LoginUtil.password = password</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def success = LoginUtil.login()
+if (success) {
+  // ...
+} else {
+  // ...
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Now, if several users log in at the same time, it can happen that
+username and password set for one user are overwritten by
+the ones for another user before <code>Util.login()</code> is called for the
+first user, so that in the end the first user has successfully
+logged in as the second user!</p>
+</div>
+<div class="paragraph">
+<p>With the Groovy JDK, you could use separate instances of <code>GroovyShell</code>
+for each session, which would mean that all scripts would have to be
+compiled for each session.
+Or you could have a master <code>GroovyClassLoader</code> that has a target directory
+set in its <code>CompilerConfiguration</code> and then add the target directory to the
+classpath of a slave <code>GroovyClassLoader</code> instance per session.</p>
+</div>
+<div class="paragraph">
+<p>With Grengine, you can use separate class loaders based on the same
+compiled byte code with a single Grengine instance.
+You can choose between "attached" loaders that are automatically updated
+when the Grengine&#8217;s sources layers change and all share a top code cache,
+or you can have "detached" loaders that remain constant during the session,
+i.e. compiled sources layers remain constant during the lifetime of the
+loader and have a top code cache only shared with loaders that have the
+same compiled sources layers.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Loader loader = gren.getLoader();
+Loader loader1 = gren.newAttachedLoader();
+Loader loader2 = gren.newDetachedLoader();
+gren.run("return 2");
+gren.run(loader, "return 2");
+gren.run(loader1, scriptFile, binding);
+gren.create(loader2, scriptUrl);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>All variations of load/create/run can optionally have a loader as its
+first parameter.
+If not indicated, the default loader is used, an attached loader that
+can be obtained with <code>gren.getLoader()</code>.</p>
+</div>
+<div class="paragraph">
+<p>Note that the <code>Loader</code> class is an opaque wrapper around an actual class
+loader.</p>
+</div>
+<div class="sect3">
+<h4 id="alternative-session-separation">Alternative Session Separation</h4>
+<div class="paragraph">
+<p>The following code addresses the issue of shared static variables differently,
+namely by not allowing static (non-final) variables in Groovy sources or
+issuing a warning etc., with a <code>CompilationCustomizer</code> like this one:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">class NoStaticCompilationCustomizer extends CompilationCustomizer {
+
+  NoStaticCompilationCustomizer() { super(CompilePhase.CANONICALIZATION) }
+
+  void call(SourceUnit source, GeneratorContext context, ClassNode classNode)
+      throws CompilationFailedException {
+    classNode.fields.each { field -&gt;
+      if (Modifier.isStatic(field.modifiers) &amp;&amp; !Modifier.isFinal(field.modifiers)) {
+        // throw or warn, etc.
+      }
+    }
+  }
+}</code></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">def config = new CompilerConfiguration()
+config.addCompilationCustomizers(new NoStaticCompilationCustomizer())</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>So, instead of isolating static variables in different class loaders, the approach
+here is to use just one class loader and not to let the static variables be created
+in the first place, or at least make operators aware of potential security issues.</p>
+</div>
+<div class="paragraph">
+<p>This puts an additional burden on administrators, namely to check script validity
+and to know how to refactor Groovy sources when needed, and it is also somewhat less
+robust against unintended leaks between sessions, because even static <em>final</em>
+variables can be modified from different sessions, depending on their type, a <code>Map</code>,
+for example. The latter issue could be covered to some degree with an extended
+CompilationCustomizer, but this would again add complexity that administrators
+would have to understand and know how to refactor.</p>
+</div>
+<div class="paragraph">
+<p>On the other hand, this workaround is by design faster than multiple class loaders
+and essentially free of the garbage collection issues described in the next section.</p>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="class-loading-and-garbage-collection">Class Loading and Garbage Collection</h3>
+<div class="paragraph">
+<p>Although loading classes from bytecode obtained from compiling Groovy scripts
+is a lot less expensive than compiling them (plus afterwards also loading the
+resulting bytecode), it is still somewhat more expensive than one might naively
+expect and there are a few things to be aware of when operating that way.</p>
+</div>
+<div class="paragraph">
+<p>In the following, I will simply call classes compiled by the Groovy compiler
+from Groovy scripts/sources <em>Groovy classes</em> and classes compiled by the Java
+compiler from Java sources <em>Java classes</em>.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><strong>Class Loading</strong><br>
+Experimentally, loading of a typical Groovy class is often about 10 times
+slower than loading a Java class with similarly complex source code, but
+both are relatively expensive operations (of the order of a millisecond
+for a small Groovy class, to give a rough indication). For Java classes,
+this is apparently mainly expensive because some security checks have to
+be made on the bytecode. For Groovy classes, it is mainly expensive
+because some metadata is needed to later efficiently call methods
+dynamically, and the like.</p>
+</li>
+<li>
+<p><strong>Garbage Collection</strong><br>
+Classes are stored in <em>PermGen</em> (up to Java 7) resp. <em>Metaspace</em> (Java 8
+and later) plus some associated data on the Heap, at least for Groovy
+classes the latter is normally the case (metadata). Whereas for Java
+classes, unused classes appear to be usually garbage collected from
+PermGen/Metaspace continuously, with Groovy classes this typically does
+not happen before PermGen/Metaspace or the Heap reach a configured limit.
+The reasons for that are the technical complexities of a dynamic language
+paired with Java VM restrictions and bugs, performance requirements (fast
+access to metadata from the class) and remaining backwards compatible
+with previous Groovy versions (except when making a major release).
+Note that by default on Java VMs there is typically no limit set for
+Metaspace (but there is for PermGen), so setting a limit is crucial in
+practice when using Groovy.</p>
+</li>
+<li>
+<p><strong>Garbage Collection Bugs</strong><br>
+In the past, several Groovy versions had failed at garbage collecting
+Groovy classes and their class loaders, resulting finally in an
+<code>OutOfMemoryError</code> due to exhaustion of PermGen/Metaspace or the Heap,
+whichever limit was reached first. From Groovy 2.4.0 to 2.4.7 you had to
+make sure you set the system property <code>groovy.use.classvalue=true</code> in the
+context of Grengine (or when using the Groovy JDK to compile and run
+scripts). Note that under different circumstances, like the
+one described in <a href="https://issues.apache.org/jira/browse/GROOVY-7591">GROOVY-7591:
+Use of ClassValue causes major memory leak</a> you would instead have had to
+set it to false! That Groovy bug is actually in turn due to an issue in
+Oracle/OpenJDK Java VMs regarding garbage collection under some
+circumstances, more precisely a general issue that also affects a new
+feature (<code>ClassValue</code>) introduced in order to make thing easier(!) for
+dynamic languages in the Java VM, see
+<a href="https://bugs.openjdk.java.net/browse/JDK-8136353">JDK-8136353</a>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>In a setup in which you don&#8217;t know when a loaded class will not be needed
+any more, and you want or need to load many Groovy classes repeatedly,
+first set a limit on PermGen/Metaspace, then verify that classes can be
+garbage collected once the limit is reached and that throughput is sufficient
+for your needs (despite the relatively slow class loading performance of
+Groovy (and Java) classes in the Java VM). And don&#8217;t forget to repeat this
+at least when you upgrade Groovy to a new version, but probably also when
+you upgrade Java.</p>
+</div>
+<div class="paragraph">
+<p>In a setup in which you know exactly when you won&#8217;t need a Grengine or a
+Loader any more (including all the classes it ever loaded), you can explicitly
+make it available by calling its <code>close()</code> method.</p>
+</div>
+<div class="paragraph">
+<p>Example 1:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine gren = new Grengine();
+gren.run("int x=0; [1,2,3].each { x+=it }; x");
+gren.close();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Example 2:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine gren = new Grengine();
+Loader loaderA = gren2.newAttachedLoader();
+gren.run(loaderA, "int x=0; [1,2,3].each { x+=it }; x");
+loaderA.close();
+Loader loaderD = gren2.newDetachedLoader();
+gren.run(loaderD, "int x=0; [1,2,3].each { x+=it }; x");
+loaderD.close();
+gren.close();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This eliminates all the OutOfMemoryError issues described above. With Oracle
+Java 8 (and apparently with Oracle Java 6 and 7 on Windows) this leads
+generally to "on-the-fly" garbage collection, i.e. classes and their loaders
+are generally already collected before any limit on PermGen/Metaspace or Heap
+is reached. On VMs in which this is not the case, garbage collection when the
+limit is reached causes no noticeable delay, as opposed to when not closing,
+where the delay can easily be several seconds in which the VM does not respond
+to anything at all&#8230;&#8203;</p>
+</div>
+<div class="paragraph">
+<p>Finally, note that you can even provide a custom cleanup function, just implement
+the <code>ClassReleaser</code> interface and set it in the <code>Engine</code>.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="grengine-and-grape">Grengine and Grape</h3>
+<div class="paragraph">
+<p>The ability to get dependencies from a Maven repository (or similar),
+at <strong>runtime</strong>,  including transitive dependencies, which <strong>Grape</strong> offers,
+is a pretty much unique and cool feature that almost only Groovy offers
+so easily:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">@Grab('com.google.guava:guava:18.0')
+import com.google.common.base.Ascii
+println "Grape: 'C' is upper case: ${Ascii.isUpperCase('C' as char)}"</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>With Grengine this does not work if you just create e.g. a Grengine instance
+with <code>new Grengine()</code>, because Grape only works if there is a <code>GroovyClassLoader</code>
+(or a <code>RootLoader</code>) somewhere up in the class loader parent hierarchy.
+(The workaround <code>@GrabConfig(systemClassLoader=true)</code> before a grab does not
+always help, most prominently it fails in a webapp container like Tomcat.)
+In addition, in the case of Grengine, that GroovyClassLoader would not be the
+one that was used to compile the sources, which can lead to race conditions
+when loading classes from bytecode, because the Grape dependencies are added
+to the classpath in a static initializer, which may or may not run before
+classes from those dependencies are attempted to be loaded by the Java VM.
+(This is a general issue that affects loading of any classes compiled from
+sources that grab dependencies with Grape, see
+<a href="https://issues.apache.org/jira/browse/GROOVY-8108">GROOVY-8108</a>.)</p>
+</div>
+<div class="paragraph">
+<p>Moreover, there is an open bug in Groovy Grape,
+<a href="https://issues.apache.org/jira/browse/GROOVY-7407">GROOVY-7407</a>,
+which is hard to fix in full generality. Namely, grabs are only thread-safe
+if they all go through the same GroovyClassLoader.
+They are not if you use different GroovyClassLoader instances, and also not
+across different class loaders for the Grape classes or different Java VMs
+(<a href="https://issues.apache.org/jira/browse/GROOVY-8097">GROOVY-8097</a>).</p>
+</div>
+<div class="paragraph">
+<p>Grengine provides easy support for alleviating GROOVY-7407 in practice, except
+across different Java VMs, and prevents GROOVY-8108 from affecting Grengine.</p>
+</div>
+<div class="paragraph">
+<p>Optionally the <code>GrapeEngine</code> in the <code>Grape.class</code>, which is obtained with
+<code>Grape.getInstance()</code>&#8201;&#8212;&#8201;and so far is always an instance of a class called
+<code>GrapeIvy</code> (using Apache Ivy to resolve dependencies)&#8201;&#8212;&#8201;is wrapped with a
+Grengine-specific instance that locks all grabs on <code>Grape.class</code> or on a
+freely eligible lock object and passes on all calls to the original
+<code>GrapeEngine</code> instance.
+For example, if you wanted to safely use Grape across different webapps in a
+Tomcat, the webapps might lock on some rather unusual class in the Java JDK,
+instead of on <code>Grape.class</code>, which would typically be separately loaded classes
+if the Groovy JAR is part of each webapp and not installed at the Tomcat level.
+Also part of the wrapper is a mechanism where you can optionally pass the runtime
+GroovyClassLoader while compiling via a <code>CompilationCustomizer</code>, with the effect
+that grabs are made on both the runtime class loader and the compile time class
+loader, thus eliminating GROOVY-8108.</p>
+</div>
+<div class="paragraph">
+<p>In practice, things are quite easy to use.
+For a Grengine that uses Grape and is based of sources in a given directory,
+instead of</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine gren = new Grengine(dir);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>you would do this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine.Grape.activate();
+Grengine gren = Grengine.Grape.newGrengine(dir)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The first call wraps the <code>GrapeEngine</code> in the <code>Grape</code> class, which has a
+"global" impact on all Groovy scripts and classes that grab dependencies,
+but this does no harm to others, in fact it has no effect except on them
+except that it eliminates the GROOVY-7407 issue within the scope of the
+loaded <code>Grape.class</code>.
+(With the exception of performance: If one grab takes a few seconds because
+it has to download a dependency from a remote repository, any other scripts
+that want to grab, too, must wait. On the other hand, if those scripts would
+not wait, their grabs might fail or even get Grape into a state in which
+grabbing would not work any more until exiting the Java VM.)</p>
+</div>
+<div class="paragraph">
+<p>The above shortcut works with all convenience Grengine constructors, the
+ones from directories, a collection of URLs or without any sources layers.
+To deactivate wrapping again, simply call:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine.Grape.deactivate();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>If you want to use a different lock, use:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Grengine.Grape.activate(myLock);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In more sophisticated use cases where you define the elements of the
+Grengine in more detail, you can directly use the <code>DefaultGroovyCompiler</code>
+class.
+The methods <code>enableGrapeSupport()</code> and <code>disableGrapeSupport()</code> have
+exactly the same effect als the activate/deactivate methods mentioned
+above.
+The only thing you usually have to do in addition, is to modify the
+<code>CompilerConfiguration</code> with a call like this, where <code>runtimeLoader</code>
+would be the parent loader of the <code>Engine</code> you create:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">GroovyClassLoader runtimeLoader = ...;
+CompilerConfiguration config = ...;
+DefaultGroovyCompiler.withGrape(config, runtimeLoader);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The compiler configuration is then set in the <code>CompilerFactory</code>, which,
+in turn, is used for the <code>Sources</code> and the <code>TopCodeCache</code> of the <code>Engine</code>.
+Here is a real example in Groovy (from <a href="https://www.artecat.ch/jexler/">Jexler</a>):</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-groovy" data-lang="groovy">private Grengine createGrengine() {
+
+  // setting most things explicitly even if would be default value anyway
+
+  // for Grape to work, a GroovyClassLoader must be a parent loader
+  final GroovyClassLoader runtimeLoader = new GroovyClassLoader()
+  Grengine.Grape.activate()
+  //System.setProperty('groovy.grape.report.downloads', 'true')
+  //System.setProperty('ivy.message.logger.level', '4')
+
+  final CompilerConfiguration config = new CompilerConfiguration().with {
+    optimizationOptions.put(INVOKEDYNAMIC, true)
+    targetBytecode = JDK8
+    addCompilationCustomizers(new ImportCustomizer().with {
+      addStarImports('ch.artecat.jexler', 'ch.artecat.jexler.service', 'ch.artecat.jexler.tool')
+    })
+  }
+  DefaultGroovyCompiler.withGrape(config, runtimeLoader)
+
+  final CompilerFactory theCompilerFactory = new DefaultGroovyCompilerFactory(config)
+
+  final Grengine gren = new Grengine.Builder().with {
+    sourcesLayers = [(Sources)new JexlerContainerSources.Builder(this).with {
+      compilerFactory = theCompilerFactory
+      sourceFactory = new DefaultSourceFactory()
+      latencyMs = 800
+      build()
+    }]
+    latencyMs = 800
+    engine = new LayeredEngine.Builder().with {
+      parent = runtimeLoader
+      allowSameClassNamesInMultipleCodeLayers = false
+      allowSameClassNamesInParentAndCodeLayers = true
+      withTopCodeCache = true
+      topLoadMode = LoadMode.PARENT_FIRST
+      topCodeCacheFactory = new DefaultTopCodeCacheFactory.Builder().with {
+        compilerFactory = theCompilerFactory
+        build()
+      }
+      build()
+    }
+    build()
+  }
+
+  final GrengineException lastUpdateException = gren.lastUpdateException
+  if (lastUpdateException != null) {
+    trackIssue(this, 'Compiling container sources failed at startup' +
+        ' - utility classes are not available to jexlers.', lastUpdateException)
+  }
+
+  return gren
+}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note that there are only two things done specifically to support Grape here,
+the activation call and the call to adapt the compiler configuration which
+is then passed to the constructed <code>CompilerFactory</code>.</p>
+</div>
+<div class="paragraph">
+<p>By the way, you might also want to use the activate/deactivate calls simply
+to eliminate the GROOVY-7407 issue when using only the Groovy JDK, but
+nothing from Grengine except for those calls.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="grengine-as-a-framework">Grengine as a Framework</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>This section is mainly for developers interested in the structure of
+Grengine and, in particular, in how to modify and extend default
+behavior by subclassing existing classes or by (re-)implementing
+interfaces.</p>
+</div>
+<div class="paragraph">
+<p>I will be concise here. See Javadoc and source code for details.</p>
+</div>
+<div class="sect2">
+<h3 id="compiler-code-and-bytecode">Compiler, Code and Bytecode</h3>
+<div class="paragraph">
+<p>The compiler interface is very simple:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Code compile(Sources sources) throws CompileException;</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The interface <code>Code</code> wraps bytecode plus associated class names,
+including the name of the main class per <code>Source</code> instance, plus
+some information about the <code>Sources</code>, namely last modified at
+compile time and the sources name.</p>
+</div>
+<div class="paragraph">
+<p>The class <code>Bytecode</code> is just a simple bean that wraps a class name
+and its bytecode byte array.</p>
+</div>
+<div class="paragraph">
+<p>There are two implementations of <code>Code</code>, one for an arbitrary number
+of <code>Source</code> instances in the <code>Sources</code> given at compilation,
+<code>DefaultCode</code>, and <code>DefaultSingleSourceCode</code> for a single <code>Source</code>
+instance. The latter is primarily useful in the context of the
+top code cache.</p>
+</div>
+<div class="paragraph">
+<p>The default implementation of <code>Compiler</code> is <code>DefaultGroovyCompiler</code>.
+It does nothing special, during compilation a GroovyClassLoader is
+created and optionally it writes classes also to to a target directory,
+if indicated in the compiler configuration.</p>
+</div>
+<div class="paragraph">
+<p>It is imaginable to implement <code>Compiler</code> for other languages, like
+Java or Scala.
+Difficulties would be to find out the main class name and which
+class names come from which source and methods like <code>gren.run(&#8230;&#8203;)</code>
+would maybe not make that much sense if you had to explicitly
+implement <code>groovy.lang.Script</code> in Java or Scala scripts, but on
+a lower level, you could still use a lot of the automatisms of
+Grengine regarding compilation and management of compiled code.</p>
+</div>
+<div class="paragraph">
+<p>The interface <code>CompilerFactory</code> and its default implementation
+are straightforward.</p>
+</div>
+<div class="paragraph">
+<p>Use the static utility methods in <code>ClassNameConflictAnalyzer</code> to
+check for class name conflicts between different instances of <code>Code</code>
+or relative to a parent class loader.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="source-based-class-loaders">Source-based Class Loaders</h3>
+<div class="paragraph">
+<p>The abstract class <code>SourceClassLoader</code> extends <code>ClassLoader</code>
+essentially with the following methods for loading classes by
+<code>Source</code> and (main) class name:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">Class&lt;?&gt; loadMainClass(Source source) throws CompileException, LoadException;
+Class&lt;?&gt; loadClass(Source source, String name) throws CompileException, LoadException;
+BytecodeClassLoader findBytecodeClassLoaderBySource(Source source);
+LoadMode getLoadMode();</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When loading a class by source, first the matching source is searched
+by ID in the class loader hierarchy.
+If found there, the main class can be returned or any other class
+that resulted from compiling the same source.
+Classes not associated with that source or not with any source at all,
+are not found this way, only if loaded directly with <code>loadClass(className)</code>.</p>
+</div>
+<div class="paragraph">
+<p>The load mode is an enum with two values, <code>PARENT_FIRST</code> and <code>CURRENT_FIRST</code>.</p>
+</div>
+<div class="paragraph">
+<p>The basic implementation of <code>SourceClassLoader</code> is <code>BytecodeClassLoader</code>. Constructor:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="prettyprint highlight"><code class="language-java" data-lang="java">BytecodeClassLoader(ClassLoader parent, LoadMode loadMode, Code code);</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It can operate in both load modes; I recommend to take a look at the code.</p>
+</div>
+<div class="paragraph">
+<p>It also contains two static utility methods that are used by other
+source class loaders, <code>loadMainClassBySource(&#8230;&#8203;)</code> and
+<code>loadClassBySourceAndName(&#8230;&#8203;)</code>.</p>
+</div>
+<div class="paragraph">
+<p>Based on <code>BytecodeClassLoader</code> is <code>LayeredClassLoader</code>, which contains
+several layers of <code>BytecodeClassLoader</code>, associated with layers of
+<code>Sources</code> resp. <code>Code</code>, plus optionally a <code>TopCodeCache</code>.</p>
+</div>
+<div class="paragraph">
+<p>The <code>LayeredClassLoader</code> can be cloned to copies based on identical
+bytecode.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="engine-and-grengine">Engine and Grengine</h3>
+<div class="paragraph">
+<p>The interface <code>Engine</code> defines the essential functionality for a
+Grengine, without all the convenience methods for load/create/run
+and without automatic updates of sources layers.
+These layers can be updated by providing layers of <code>Sources</code> or
+layers of already compiled <code>Code</code>.</p>
+</div>
+<div class="paragraph">
+<p>The so far only implementation <code>LayeredEngine</code> uses a
+<code>LayeredClassLoader</code>.
+Layers can be updated while the engine is used.</p>
+</div>
+<div class="paragraph">
+<p>The abstract class <code>BaseGrengine</code> implements most of the matrix
+of convenience methods for <code>Grengine</code>, which extends <code>BaseGrengine</code>.
+In addition, <code>Grengine</code> provides the automatic updates of sources
+layers and the callback for update exceptions.</p>
+</div>
+<div class="paragraph">
+<p>A Grengine can be constructed with a custom <code>Engine</code> and
+<code>SourceFactory</code>, plus the notifier for update exceptions.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="miscellaneous">Miscellaneous</h3>
+<div class="paragraph">
+<p>Many classes override <code>toString()</code> in order to produce strings useful
+for logging.
+A few classes, including all implementations of <code>Source</code>, override
+<code>equals()</code> and <code>hashCode()</code>, so that they can be used as map keys
+or in sets.</p>
+</div>
+<div class="paragraph">
+<p>Many classes have an inner <code>Builder</code> class for flexible creation of
+instances, as well as to make it easier to add features in the future
+with a consistent interface.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="enjoy">Enjoy!</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>There is so much yet to explore between the static world of Java
+and the dynamically free world of script languages.</p>
+</div>
+<div class="paragraph">
+<p>Groovy can span it all like no other language.</p>
+</div>
+<div class="paragraph">
+<p>Especially the Groovy compiler provides fantastic features that allow
+to span the whole gap in terms of the language, with optional
+static compilation and strong typing and much more&#8230;&#8203;</p>
+</div>
+<div class="paragraph">
+<p>On the other hand, the Groovy JDK classes like <code>GroovyShell</code>,
+<code>GroovyScriptEngine</code> and even the <code>GroovyClassLoader</code> seem to me
+to lean more towards the side of dynamic scripting.</p>
+</div>
+<div class="paragraph">
+<p>I hope you will have fun with Grengine and that it will allow you
+to make things with Groovy that are yet unseen!</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="release-notes">Release Notes</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="grengine-3">Grengine 3</h3>
+<div class="sect3">
+<h4 id="3-0-2-26-february-2023">3.0.2 (26 February 2023)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Fix: The workaround for the Grape concurrency issue
+<a href="https://issues.apache.org/jira/browse/GROOVY-7407">GROOVY-7407</a>
+now also works with Groovy 3 and 4.
+</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="3-0-1-25-february-2023">3.0.1 (25 February 2023)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Dependency to groovy JAR no longer in published pom
+because Groovy 4 has a different group ID (<code>org.apache.groovy</code>)
+than earlier Groovy versions (<code>org.codehaus.groovy</code>).</p>
+</li>
+</ul>
+</div>
+<div class="sect3">
+<h4 id="3-0-0-21-january-2019">3.0.0 (21 January 2019)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Changed: Packages renamed from <code>ch.grengine.*</code> to
+<code>ch.artecat.grengine.*</code> for Grengine&#8217;s new home at
+<a href="https://www.artecat.ch/grengine/">artecat.ch/grengine</a>.</p>
+</li>
+<li>
+<p>Fix: <code>ByteCodeClassLoader</code> internally uses <code>getDefinedPackage()</code> if
+available (Java 9 and later), else continues to use <code>getPackage()</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="grengine-2">Grengine 2</h3>
+<div class="sect3">
+<h4 id="2-0-0-28-july-2018">2.0.0 (28 July 2018)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Changed: Requires Java 8 or later. Note that package names have remained
+unchanged despite the new major version since Grengine is not very widely
+used and incompatible interface changes are sparse.
+Under the hood, the code has been streamlined by using Java 8 features,
+and unit tests have been significantly regularized and streamlined.</p>
+</li>
+<li>
+<p>Changed:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>GrengineException</code> and its subclasses are now <code>RuntimeExceptions</code>.</p>
+</li>
+<li>
+<p>Null method arguments now lead to <code>NullPointerException</code> instead
+of <code>IllegalArgumentException</code>.</p>
+</li>
+</ul>
+</div>
+</li>
+<li>
+<p>Removed:</p>
+<div class="ulist">
+<ul>
+<li>
+<p><code>SourceUtil#CHARSET_UTF_8</code> &#8658; use <code>StandardCharsets.UTF_8</code>.</p>
+</li>
+<li>
+<p><code>SourceUtil#getTextStartNoLinebreaks()</code>
+&#8658; use <code>SourceUtil#getTextStartNoLineBreaks()</code>.</p>
+</li>
+<li>
+<p><code>SourcesUtil#sourcesArrayToList()</code> &#8658; use <code>Arrays.asList()</code>.</p>
+</li>
+<li>
+<p><code>CodeUtil#codeArrayToList()</code> &#8658; use <code>Arrays.asList()</code>.</p>
+</li>
+<li>
+<p><code>CodeUtil</code> class (the above was its only method).</p>
+</li>
+</ul>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="grengine-1">Grengine 1</h3>
+<div class="sect3">
+<h4 id="1-3-0-20-july-2017">1.3.0 (20 July 2017)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>New: New methods <code>asClassLoader()</code> for <code>Grengine</code> and <code>Engine</code> that allow
+to use a Grengine resp. its engine as parent class loader for <code>GroovyShell</code>
+or <code>GroovyClassLoader</code> (or any other class loader).</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-2-1-28-april-2017">1.2.1 (28 April 2017)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Fix: Java 9 compatibility (removed dependency on <code>javax.xml.bind package</code>,
+which is not available by default on Java 9).</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-2-0-4-march-2017">1.2.0 (4 March 2017)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>New/Fix: Extended support for Grape with Grengine and an easy-to-use
+workaround for <a href="https://issues.apache.org/jira/browse/GROOVY-7407">GROOVY-7407</a>
+that can also be used independently when only using the Groovy JDK.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-1-1-24-february-2017">1.1.1 (24 February 2017)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>New: Convenience <code>loadClass()</code> and <code>loadMainClass()</code> methods in <code>BaseGrengine</code>
+for using the default loader.</p>
+</li>
+<li>
+<p>Deprecated: Instead of <code>SourceUtil#getTextStartNoLinebreaks()</code>, use the new
+method <code>getTextStartNoLineBreaks()</code> without the typo.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-1-0-8-june-2016">1.1.0 (8 June 2016)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>New: <code>Grengine</code>, <code>BaseGrengine</code>, <code>Engine</code> and <code>Loader</code> now implement the
+<code>Closable</code> interface and the <code>SourceClassLoader</code> interface now contains
+a similar cleanup method for allowing to make classes and their class
+loaders more easily available for garbage collection when they are no
+longer needed. See the section "Class Loading and Garbage Collection"
+for details.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-0-6-4-june-2016">1.0.6 (4 June 2016)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Fix: Fixed concurrency issue in top code cache (<code>LayeredClassLoader</code>).</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-0-5-24-october-2015">1.0.5 (24 October 2015)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Fix: <code>DirBasedSources</code> now treats (sub-)directories that cannot be listed
+as empty, no longer throws a <code>NullPointerException</code> in this case.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-0-4-23-august-2015">1.0.4 (23 August 2015)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Optimization: The <code>BytecodeClassLoader</code> class now locks individually per class
+resp. package name when defining classes resp. packages; previously it locked
+on the <code>BytecodeClassLoader</code> instance.</p>
+</li>
+<li>
+<p>New (documentation): Section about the cost of session separation.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-0-3-9-may-2015">1.0.3 (9 May 2015)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>New: Convenience <code>Grengine</code> constructors that allow to set the parent class loader
+of the engine more easily, for easier Grape support.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-0-2-11-october-2014">1.0.2 (11 October 2014)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>Changed: <code>Grengine</code> constructors from <code>CompilerConfiguration</code> and script directory
+now default to using the script extensions defined in the <code>CompilerConfiguration</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-0-1-4-october-2014">1.0.1 (4 October 2014)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>New (performance): <code>DefaultSourceFactory</code> options for caching text source ID and
+file source last modified.</p>
+</li>
+<li>
+<p>Changed: Slightly changed ID string of <code>DefaultTextSource</code> with a desired name.</p>
+</li>
+<li>
+<p>New test: Manual test <code>GrengineVisualPerformanceTest</code> which prints useful info
+regarding performance.</p>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect3">
+<h4 id="1-0-0-29-september-2014">1.0.0 (29 September 2014)</h4>
+<div class="ulist">
+<ul>
+<li>
+<p>First public release.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a>. Performance on a Java VM depends on lots of parameters. Beyond the order of magnitude not too much attention should be given to the informal numbers presented here. Generally, I find it best to measure performance as closely as possible to an actually deployed situation and to compare the effect of different optimization attempts there, simply because there are almost always surprises in practice.
+</div>
+</div>
+</body>
+</html>

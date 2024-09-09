@@ -1,0 +1,1344 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Grengine.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.artecat.grengine</a> &gt; <span class="el_source">Grengine.java</span></div><h1>Grengine.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.artecat.grengine;
+
+import ch.artecat.grengine.code.CompilerFactory;
+import ch.artecat.grengine.code.groovy.DefaultGroovyCompiler;
+import ch.artecat.grengine.code.groovy.DefaultGroovyCompilerFactory;
+import ch.artecat.grengine.engine.Engine;
+import ch.artecat.grengine.engine.LayeredEngine;
+import ch.artecat.grengine.engine.Loader;
+import ch.artecat.grengine.except.CompileException;
+import ch.artecat.grengine.except.GrengineException;
+import ch.artecat.grengine.load.DefaultTopCodeCacheFactory;
+import ch.artecat.grengine.load.TopCodeCacheFactory;
+import ch.artecat.grengine.source.DefaultSourceFactory;
+import ch.artecat.grengine.source.Source;
+import ch.artecat.grengine.source.SourceFactory;
+import ch.artecat.grengine.source.SourceUtil;
+import ch.artecat.grengine.sources.DirBasedSources;
+import ch.artecat.grengine.sources.DirMode;
+import ch.artecat.grengine.sources.FixedSetSources;
+import ch.artecat.grengine.sources.Sources;
+
+import java.io.File;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.IntStream;
+
+import groovy.lang.Binding;
+import groovy.lang.GroovyClassLoader;
+import groovy.lang.Script;
+import org.codehaus.groovy.control.CompilerConfiguration;
+
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+
+
+/**
+ * Grengine.
+ * &lt;p&gt;
+ * See {@link BaseGrengine} for most convenience methods for using Grengine.
+ * &lt;p&gt;
+ * The matrix for running scripts is as follows:
+ * &lt;ul&gt;
+ * &lt;li&gt;{@code run(&lt;loader&gt;,&lt;source&gt;,&lt;binding&gt;)}
+ * &lt;li&gt;{@code &lt;loader&gt;}: can be a specific loader or be omitted for the default loader
+ * &lt;li&gt;{@code &lt;source&gt;}: can be an instance of source or indicated by script text, file or URL
+ * &lt;li&gt;{@code &lt;binding&gt;}: can be an instance of {@link Binding}, a map or be omitted for an empty binding
+ * &lt;/ul&gt;
+ * &lt;p&gt;
+ * Examples:
+ * &lt;ul&gt;
+ * &lt;li&gt;{@code run(&quot;println 'hello world!'&quot;)}: default loader, text-based source, empty binding
+ * &lt;li&gt;{@code run(myLoader, new URL(&quot;http://acme.org/myScript.groovy&quot;, myBinding)}:
+ *     given loader, URL-based source, given binding
+ * &lt;/ul&gt;
+ * &lt;p&gt;
+ * The matrices for loading classes, creating script instances and for creating sources are similar:
+ * &lt;ul&gt;
+ * &lt;li&gt;{@code load(&lt;loader&gt;,&lt;source&gt;)}
+ * &lt;li&gt;{@code create(&lt;loader&gt;,&lt;source&gt;)}
+ * &lt;li&gt;{@code source(&lt;source&gt;)}
+ * &lt;/ul&gt;
+ * &lt;p&gt;
+ * Grengine performance:
+ * &lt;ul&gt;
+ * &lt;li&gt;In my experience it is crucial to measure performance under circumstances
+ *     that come as close as possible to the actual application.
+ * &lt;li&gt;What can be said independently of actual circumstances is:
+ *     &lt;ul&gt;
+ *     &lt;li&gt;Compiling a very simple script is of the order of &lt;em&gt;milliseconds.&lt;/em&gt;
+ *     &lt;li&gt;Running it with Grengine by script text or script file is of the order of &lt;em&gt;microseconds&lt;/em&gt;
+ *         (except for the first run or other circumstances where (re-)compilation is mandated).
+ *     &lt;li&gt;Running it from an already created instance of {@link Script} is of the order of &lt;em&gt;nanoseconds&lt;/em&gt;.
+ *     &lt;/ul&gt;
+ * &lt;li&gt;Run the GrengineVisualPerformanceTest and see the options of {@link DefaultSourceFactory}.
+ * &lt;/ul&gt;
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class Grengine extends BaseGrengine {
+
+    /**
+     * constant for an infinite latency (static).
+     *
+     * @since 1.0
+     */
+    public static final long LATENCY_MS_INFINITE_STATIC = Long.MAX_VALUE;
+
+    private final Builder builder;
+    private final List&lt;Sources&gt; sourcesLayers;
+    private final long latencyMs;
+
+    private volatile List&lt;Long&gt; lastModifiedList;
+    private volatile long lastChecked;
+    private volatile GrengineException lastUpdateException;
+    private final UpdateExceptionNotifier updateExceptionNotifier;
+
+    /**
+     * constructor from builder.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need
+     * to make sure all sources could be compiled without errors.
+     *
+     * @param builder builder
+     *
+     * @since 1.0
+     */
+<span class="fc" id="L131">    protected Grengine(Builder builder) {</span>
+<span class="fc" id="L132">        this.builder = builder.commit();</span>
+<span class="fc" id="L133">        engine = builder.getEngine();</span>
+<span class="fc" id="L134">        sourceFactory = builder.getSourceFactory();</span>
+<span class="fc" id="L135">        sourcesLayers = builder.getSourcesLayers();</span>
+<span class="fc" id="L136">        latencyMs = builder.getLatencyMs();</span>
+
+        // initialize such that sources layers will be loaded at first update
+        // further below, even if sources are immutable or latency is infinite
+<span class="fc" id="L140">        final int n = sourcesLayers.size();</span>
+<span class="fc" id="L141">        lastModifiedList = Collections.nCopies(n, -1L);</span>
+<span class="fc" id="L142">        lastChecked = 0;</span>
+<span class="fc" id="L143">        lastUpdateException = null;</span>
+<span class="fc" id="L144">        updateExceptionNotifier = builder.getUpdateExceptionNotifier();</span>
+<span class="fc" id="L145">        updateEngineIfSourcesLayersModified();</span>
+
+<span class="fc" id="L147">        loader = engine.getLoader();</span>
+<span class="fc" id="L148">    }</span>
+
+    /**
+     * constructor for a Grengine without any (static) code layers,
+     * but with a top code cache.
+     * &lt;p&gt;
+     * Constructed from a builder with default settings.
+     *
+     * @since 1.0
+     */
+    public Grengine() {
+<span class="fc" id="L159">        this(new Builder());</span>
+<span class="fc" id="L160">    }</span>
+
+    /**
+     * constructor for a Grengine without any (static) code layers,
+     * but with a top code cache.
+     * &lt;p&gt;
+     * Constructed from a builder with default settings.
+     *
+     * @param config compiler configuration to use for compiling all sources
+     *
+     * @throws NullPointerException if the compiler configuration is null
+     *
+     * @since 1.0
+     */
+    public Grengine(final CompilerConfiguration config) {
+<span class="fc" id="L175">        this(builderEmpty(null, true, config, false));</span>
+<span class="fc" id="L176">    }</span>
+
+    /**
+     * constructor for a Grengine without any (static) code layers,
+     * but with a top code cache.
+     * &lt;p&gt;
+     * Constructed from a builder with default settings.
+     *
+     * @param parent parent class loader for the engine
+     *
+     * @throws NullPointerException if the parent class loader is null
+     *
+     * @since 1.0.3
+     */
+    public Grengine(final ClassLoader parent) {
+<span class="fc" id="L191">        this(builderEmpty(parent, false, null, true));</span>
+<span class="fc" id="L192">    }</span>
+
+    /**
+     * constructor for a Grengine without any (static) code layers,
+     * but with a top code cache.
+     * &lt;p&gt;
+     * Constructed from a builder with default settings.
+     *
+     * @param parent parent class loader for the engine
+     * @param config compiler configuration to use for compiling all sources
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0.3
+     */
+    public Grengine(final ClassLoader parent, final CompilerConfiguration config) {
+<span class="fc" id="L208">        this(builderEmpty(parent, false, config, false));</span>
+<span class="fc" id="L209">    }</span>
+
+    /**
+     * constructor for a Grengine based on scripts in a given script
+     * directory, without subdirectories, and with a top code cache.
+     * &lt;p&gt;
+     * Script extensions are the single extension &quot;groovy&quot;.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param dir script directory
+     *
+     * @throws NullPointerException if the directory is null
+     *
+     * @since 1.0
+     */
+    public Grengine(final File dir) {
+<span class="fc" id="L232">        this(builderFromDir(null, true, null, true, dir, DirMode.NO_SUBDIRS));</span>
+<span class="fc" id="L233">    }</span>
+
+    /**
+     * constructor for a Grengine based on scripts in a given script
+     * directory, without subdirectories, and with a top code cache.
+     * &lt;p&gt;
+     * Script extensions are the single extension &quot;groovy&quot;.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param parent parent class loader for the engine
+     * @param dir script directory
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0.3
+     */
+    public Grengine(final ClassLoader parent, final File dir) {
+<span class="fc" id="L257">        this(builderFromDir(parent, false, null, true, dir, DirMode.NO_SUBDIRS));</span>
+<span class="fc" id="L258">    }</span>
+
+    /**
+     * constructor for a Grengine based on scripts in a given script
+     * directory, without subdirectories, and with a top code cache.
+     * &lt;p&gt;
+     * Script extensions are taken from the given compiler configuration,
+     * which defaults to the single extension &quot;groovy&quot;.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param config compiler configuration to use for compiling all sources
+     * @param dir script directory
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0
+     */
+    public Grengine(final CompilerConfiguration config, final File dir) {
+<span class="fc" id="L283">        this(builderFromDir(null, true, config, false, dir, DirMode.NO_SUBDIRS));</span>
+<span class="fc" id="L284">    }</span>
+
+    /**
+     * constructor for a Grengine based on scripts in a given script
+     * directory, without subdirectories, and with a top code cache.
+     * &lt;p&gt;
+     * Script extensions are taken from the given compiler configuration,
+     * which defaults to the single extension &quot;groovy&quot;.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param parent parent class loader for the engine
+     * @param config compiler configuration to use for compiling all sources
+     * @param dir script directory
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0.3
+     */
+    public Grengine(final ClassLoader parent, final CompilerConfiguration config, final File dir) {
+<span class="fc" id="L310">        this(builderFromDir(parent, false, config, false, dir, DirMode.NO_SUBDIRS));</span>
+<span class="fc" id="L311">    }</span>
+
+    /**
+     * constructor for a Grengine based on scripts in a given script
+     * directory, optionally including subdirectories (recursively),
+     * and with a top code cache.
+     * &lt;p&gt;
+     * Script extensions are the single extension &quot;groovy&quot;.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param dir script directory
+     * @param dirMode dir mode
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0
+     */
+    public Grengine(final File dir, final DirMode dirMode) {
+<span class="fc" id="L336">        this(builderFromDir(null, true, null, true, dir, dirMode));</span>
+<span class="fc" id="L337">    }</span>
+
+    /**
+     * constructor for a Grengine based on scripts in a given script
+     * directory, optionally including subdirectories (recursively),
+     * and with a top code cache.
+     * &lt;p&gt;
+     * Script extensions are the single extension &quot;groovy&quot;.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param parent parent class loader for the engine
+     * @param dir script directory
+     * @param dirMode dir mode
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0.3
+     */
+    public Grengine(ClassLoader parent, final File dir, final DirMode dirMode) {
+<span class="fc" id="L363">        this(builderFromDir(parent, false, null, true, dir, dirMode));</span>
+<span class="fc" id="L364">    }</span>
+
+    /**
+     * constructor for a Grengine based on scripts in a given script
+     * directory, optionally including subdirectories (recursively),
+     * and with a top code cache.
+     * &lt;p&gt;
+     * Script extensions are taken from the given compiler configuration,
+     * which defaults to the single extension &quot;groovy&quot;.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param config compiler configuration to use for compiling all sources
+     * @param dir script directory
+     * @param dirMode dir mode
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0
+     */
+    public Grengine(final CompilerConfiguration config, final File dir, final DirMode dirMode) {
+<span class="fc" id="L391">        this(builderFromDir(null, true, config, false, dir, dirMode));</span>
+<span class="fc" id="L392">    }</span>
+
+    /**
+     * constructor for a Grengine based on scripts in a given script
+     * directory, optionally including subdirectories (recursively),
+     * and with a top code cache.
+     * &lt;p&gt;
+     * Script extensions are taken from the given compiler configuration,
+     * which defaults to the single extension &quot;groovy&quot;.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param parent parent class loader for the engine
+     * @param config compiler configuration to use for compiling all sources
+     * @param dir script directory
+     * @param dirMode dir mode
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0.3
+     */
+    public Grengine(final ClassLoader parent, final CompilerConfiguration config, final File dir, final DirMode dirMode) {
+<span class="fc" id="L420">        this(builderFromDir(parent, false, config, false, dir, dirMode));</span>
+<span class="fc" id="L421">    }</span>
+
+    /**
+     * constructor for a Grengine based on a collection of URL-based scripts,
+     * with a top code cache, and with tracking URLs based on content.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Uses a {@link DefaultSourceFactory} with tracking URL content set to true.
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param urls collection of URL-based scripts
+     *
+     * @throws NullPointerException if the URL collection is null
+     *
+     * @since 1.0
+     */
+    public Grengine(final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L443">        this(builderFromUrls(null, true, null, true, urls));</span>
+<span class="fc" id="L444">    }</span>
+
+    /**
+     * constructor for a Grengine based on a collection of URL-based scripts,
+     * with a top code cache, and with tracking URLs based on content.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Uses a {@link DefaultSourceFactory} with tracking URL content set to true.
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param parent parent class loader for the engine
+     * @param urls collection of URL-based scripts
+     *
+     * @throws NullPointerException if the URL collection is null
+     *
+     * @since 1.0.3
+     */
+    public Grengine(final ClassLoader parent, final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L467">        this(builderFromUrls(parent, false, null, true, urls));</span>
+<span class="fc" id="L468">    }</span>
+
+    /**
+     * constructor for a Grengine based on a collection of URL-based scripts,
+     * with a top code cache, and with tracking URLs based on content.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Uses a {@link DefaultSourceFactory} with tracking URL content set to true.
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param config compiler configuration to use for compiling all sources
+     * @param urls collection of URL-based scripts
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0
+     */
+    public Grengine(final CompilerConfiguration config, final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L491">        this(builderFromUrls(null, true, config, false, urls));</span>
+<span class="fc" id="L492">    }</span>
+
+    /**
+     * constructor for a Grengine based on a collection of URL-based scripts,
+     * with a top code cache, and with tracking URLs based on content.
+     * &lt;p&gt;
+     * Load modes are &quot;current first&quot; for the script directory code layer
+     * and &quot;parent first&quot; for the top code cache.
+     * &lt;p&gt;
+     * Uses a {@link DefaultSourceFactory} with tracking URL content set to true.
+     * Constructed from builders with otherwise default settings.
+     * &lt;p&gt;
+     * Call {@link #getLastUpdateException()} after constructing if you need to make sure
+     * all sources can be compiled without errors.
+     *
+     * @param parent parent class loader for the engine
+     * @param config compiler configuration to use for compiling all sources
+     * @param urls collection of URL-based scripts
+     *
+     * @throws NullPointerException if any argument is null
+     *
+     * @since 1.0.3
+     */
+    public Grengine(final ClassLoader parent, final CompilerConfiguration config, final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L516">        this(builderFromUrls(parent, false, config, false, urls));</span>
+<span class="fc" id="L517">    }</span>
+
+    private static Builder builderEmpty(final ClassLoader parent, final boolean allowParentNull,
+                                        final CompilerConfiguration config, final boolean allowConfigNull) {
+<span class="fc bfc" id="L521" title="All 2 branches covered.">        if (!allowParentNull) {</span>
+<span class="fc" id="L522">            requireNonNull(parent, &quot;Parent class loader is null.&quot;);</span>
+        }
+<span class="fc bfc" id="L524" title="All 2 branches covered.">        if (!allowConfigNull) {</span>
+<span class="fc" id="L525">            requireNonNull(config, &quot;Compiler configuration is null.&quot;);</span>
+        }
+<span class="fc" id="L527">        final CompilerFactory compilerFactory = new DefaultGroovyCompilerFactory.Builder()</span>
+<span class="fc" id="L528">                .setCompilerConfiguration(config)</span>
+<span class="fc" id="L529">                .build();</span>
+<span class="fc" id="L530">        final TopCodeCacheFactory topCodeCacheFactory = new DefaultTopCodeCacheFactory(compilerFactory);</span>
+<span class="fc" id="L531">        final Engine engine = new LayeredEngine.Builder()</span>
+<span class="fc" id="L532">                .setParent(parent)</span>
+<span class="fc" id="L533">                .setTopCodeCacheFactory(topCodeCacheFactory)</span>
+<span class="fc" id="L534">                .build();</span>
+<span class="fc" id="L535">        return new Builder().setEngine(engine);</span>
+    }
+
+    private static Builder builderFromDir(final ClassLoader parent, final boolean allowParentNull,
+                                          final CompilerConfiguration config, final boolean allowConfigNull,
+                                          final File dir, final DirMode dirMode) {
+<span class="fc bfc" id="L541" title="All 2 branches covered.">        if (!allowParentNull) {</span>
+<span class="fc" id="L542">            requireNonNull(parent, &quot;Parent class loader is null.&quot;);</span>
+        }
+<span class="fc bfc" id="L544" title="All 2 branches covered.">        if (!allowConfigNull) {</span>
+<span class="fc" id="L545">            requireNonNull(config, &quot;Compiler configuration is null.&quot;);</span>
+        }
+<span class="fc" id="L547">        requireNonNull(dir, &quot;Directory is null.&quot;);</span>
+<span class="fc" id="L548">        requireNonNull(dirMode, &quot;Dir mode is null.&quot;);</span>
+<span class="fc" id="L549">        final CompilerFactory compilerFactory = new DefaultGroovyCompilerFactory.Builder()</span>
+<span class="fc" id="L550">                .setCompilerConfiguration(config)</span>
+<span class="fc" id="L551">                .build();</span>
+<span class="fc" id="L552">        final TopCodeCacheFactory topCodeCacheFactory = new DefaultTopCodeCacheFactory(compilerFactory);</span>
+<span class="fc" id="L553">        final Engine engine = new LayeredEngine.Builder()</span>
+<span class="fc" id="L554">                .setParent(parent)</span>
+<span class="fc" id="L555">                .setTopCodeCacheFactory(topCodeCacheFactory)</span>
+<span class="fc" id="L556">                .build();</span>
+<span class="fc bfc" id="L557" title="All 2 branches covered.">        final Sources sources = new DirBasedSources.Builder(dir)</span>
+<span class="fc" id="L558">                .setScriptExtensions(config == null ? null : config.getScriptExtensions())</span>
+<span class="fc" id="L559">                .setCompilerFactory(compilerFactory)</span>
+<span class="fc" id="L560">                .setDirMode(dirMode)</span>
+<span class="fc" id="L561">                .build();</span>
+<span class="fc" id="L562">        return new Builder()</span>
+<span class="fc" id="L563">                .setEngine(engine)</span>
+<span class="fc" id="L564">                .setSourcesLayers(sources);</span>
+    }
+
+    private static Builder builderFromUrls(final ClassLoader parent, final boolean allowParentNull,
+                                           final CompilerConfiguration config, final boolean allowConfigNull,
+                                           final Collection&lt;URL&gt; urls) {
+<span class="fc bfc" id="L570" title="All 2 branches covered.">        if (!allowParentNull) {</span>
+<span class="fc" id="L571">            requireNonNull(parent, &quot;Parent class loader is null.&quot;);</span>
+        }
+<span class="fc bfc" id="L573" title="All 2 branches covered.">        if (!allowConfigNull) {</span>
+<span class="fc" id="L574">            requireNonNull(config, &quot;Compiler configuration is null.&quot;);</span>
+        }
+<span class="fc" id="L576">        requireNonNull(urls, &quot;URL collection is null.&quot;);</span>
+<span class="fc" id="L577">        final CompilerFactory compilerFactory = new DefaultGroovyCompilerFactory.Builder()</span>
+<span class="fc" id="L578">                .setCompilerConfiguration(config)</span>
+<span class="fc" id="L579">                .build();</span>
+<span class="fc" id="L580">        final TopCodeCacheFactory topCodeCacheFactory = new DefaultTopCodeCacheFactory(compilerFactory);</span>
+<span class="fc" id="L581">        final Engine engine = new LayeredEngine.Builder()</span>
+<span class="fc" id="L582">                .setParent(parent)</span>
+<span class="fc" id="L583">                .setTopCodeCacheFactory(topCodeCacheFactory)</span>
+<span class="fc" id="L584">                .build();</span>
+<span class="fc" id="L585">        final SourceFactory sourceFactory = new DefaultSourceFactory.Builder().setTrackUrlContent(true).build();</span>
+<span class="fc" id="L586">        final Set&lt;Source&gt; sourceSet = SourceUtil.urlsToSourceSet(sourceFactory, urls);</span>
+<span class="fc" id="L587">        final Sources sources = new FixedSetSources.Builder(sourceSet)</span>
+<span class="fc" id="L588">                .setName(&quot;URL Sources&quot;)</span>
+<span class="fc" id="L589">                .setCompilerFactory(compilerFactory)</span>
+<span class="fc" id="L590">                .build();</span>
+<span class="fc" id="L591">        return new Builder()</span>
+<span class="fc" id="L592">                .setEngine(engine)</span>
+<span class="fc" id="L593">                .setSourceFactory(sourceFactory)</span>
+<span class="fc" id="L594">                .setSourcesLayers(sources);</span>
+    }
+    
+    
+    /**
+     * gets the builder.
+     *
+     * @return builder
+     * 
+     * @since 1.0
+     */
+    public Builder getBuilder() {
+<span class="fc" id="L606">        return builder;</span>
+    }
+
+    /**
+     * updates code layers if necessary and gets the exception that occurred at the last update.
+     * 
+     * @return last exception or null if none
+     * 
+     * @since 1.0
+     */
+    public GrengineException getLastUpdateException() {
+<span class="fc" id="L617">       updateEngineIfSourcesLayersModified();</span>
+<span class="fc" id="L618">       return lastUpdateException;</span>
+    }
+
+    /**
+     * updates the engine if sources layers have been modified.
+     * 
+     * @since 1.0
+     */
+    protected void updateEngineIfSourcesLayersModified() {
+        
+        // check if lastChecked is 0 to make sure layers are set once if latency is infinite
+        // check both boundaries of the interval to exclude problems with leap seconds etc.
+<span class="fc" id="L630">        long diff = System.currentTimeMillis() - lastChecked;</span>
+<span class="pc bpc" id="L631" title="1 of 6 branches missed.">        if (lastChecked != 0 &amp;&amp; diff &gt;= 0 &amp;&amp; diff &lt; latencyMs) {</span>
+<span class="fc" id="L632">            return;</span>
+        }
+
+        // check layers for changes
+
+<span class="fc" id="L637">        final List&lt;Long&gt; lastModifiedListNew = sourcesLayers.stream()</span>
+<span class="fc" id="L638">                .map(Sources::getLastModified)</span>
+<span class="fc" id="L639">                .collect(toList());</span>
+<span class="fc" id="L640">        final boolean hasChanged = IntStream.range(0, sourcesLayers.size())</span>
+<span class="fc bfc" id="L641" title="All 2 branches covered.">                .filter(i -&gt; (long)lastModifiedList.get(i) != (long)lastModifiedListNew.get(i))</span>
+<span class="fc" id="L642">                .findAny()</span>
+<span class="fc" id="L643">                .isPresent();</span>
+
+<span class="fc bfc" id="L645" title="All 2 branches covered.">        if (!hasChanged) {</span>
+<span class="fc" id="L646">            lastChecked = System.currentTimeMillis();</span>
+<span class="fc" id="L647">            return;</span>
+        }
+        
+        // layers have changed, update engine...
+        
+<span class="fc" id="L652">        synchronized(this) {</span>
+            
+            // prevent multiple updates
+<span class="fc" id="L655">            diff = System.currentTimeMillis() - lastChecked;</span>
+<span class="pc bpc" id="L656" title="1 of 6 branches missed.">            if (lastChecked != 0 &amp;&amp; diff &gt;= 0 &amp;&amp; diff &lt; latencyMs) {</span>
+<span class="fc" id="L657">                return;</span>
+            }
+            
+<span class="fc" id="L660">            lastModifiedList = lastModifiedListNew;</span>
+            try {
+<span class="fc" id="L662">                engine.setCodeLayersBySource(sourcesLayers);</span>
+<span class="fc" id="L663">                lastUpdateException = null;</span>
+<span class="fc" id="L664">            } catch (CompileException e) {</span>
+<span class="fc" id="L665">                lastUpdateException = e;</span>
+<span class="fc" id="L666">            } catch (Exception e) {</span>
+<span class="fc" id="L667">                lastUpdateException = new GrengineException(&quot;Failed to update Grengine.&quot;, e);</span>
+<span class="fc" id="L668">            }</span>
+<span class="fc" id="L669">            lastChecked = System.currentTimeMillis();</span>
+<span class="fc bfc" id="L670" title="All 2 branches covered.">            if (updateExceptionNotifier != null) {</span>
+<span class="fc" id="L671">                updateExceptionNotifier.notify(lastUpdateException);</span>
+            }
+<span class="fc" id="L673">        }</span>
+<span class="fc" id="L674">    }</span>
+
+    @Override
+    public Class&lt;?&gt; loadMainClass(final Loader loader, final Source source) {
+<span class="fc" id="L678">        updateEngineIfSourcesLayersModified();</span>
+<span class="fc" id="L679">        return engine.loadMainClass(loader, source);</span>
+    }
+
+    @Override
+    public Class&lt;?&gt; loadMainClass(final Source source) {
+<span class="fc" id="L684">        updateEngineIfSourcesLayersModified();</span>
+<span class="fc" id="L685">        return engine.loadMainClass(loader, source);</span>
+    }
+
+    @Override
+    public Class&lt;?&gt; loadClass(final Loader loader, final Source source, final String name) {
+<span class="fc" id="L690">        updateEngineIfSourcesLayersModified();</span>
+<span class="fc" id="L691">        return engine.loadClass(loader, source, name);</span>
+    }
+
+    @Override
+    public Class&lt;?&gt; loadClass(final Source source, final String name) {
+<span class="fc" id="L696">        updateEngineIfSourcesLayersModified();</span>
+<span class="fc" id="L697">        return engine.loadClass(loader, source, name);</span>
+    }
+
+    @Override
+    public Class&lt;?&gt; loadClass(final Loader loader, final String name) {
+<span class="fc" id="L702">        updateEngineIfSourcesLayersModified();</span>
+<span class="fc" id="L703">        return engine.loadClass(loader, name);</span>
+    }
+
+    @Override
+    public Class&lt;?&gt; loadClass(final String name) {
+<span class="fc" id="L708">        updateEngineIfSourcesLayersModified();</span>
+<span class="fc" id="L709">        return engine.loadClass(loader, name);</span>
+    }
+
+    
+    /**
+     * Builder for instances of {@link Grengine}.
+     * 
+     * @since 1.0
+     * 
+     * @author Alain Stalder
+     * @author Made in Switzerland.
+     */
+    public static class Builder {
+        
+        /** 
+         * the default latency (5000ms = five seconds).
+         * 
+         * @since 1.0
+         */
+        public static final long DEFAULT_LATENCY_MS = 5000L;
+        
+        private boolean isCommitted;
+        
+        private Engine engine;
+        private SourceFactory sourceFactory;
+        private List&lt;Sources&gt; sourcesLayers;
+        private UpdateExceptionNotifier updateExceptionNotifier;
+<span class="fc" id="L736">        private long latencyMs = -1;</span>
+        
+        /**
+         * constructor.
+         * 
+         * @since 1.0
+         */
+<span class="fc" id="L743">        public Builder() {</span>
+<span class="fc" id="L744">            isCommitted = false;</span>
+<span class="fc" id="L745">        }</span>
+        
+        /**
+         * sets the engine, default is a new instance of {@link LayeredEngine}
+         * with default settings.
+         *
+         * @param engine engine
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setEngine(final Engine engine) {
+<span class="fc" id="L759">            check();</span>
+<span class="fc" id="L760">            this.engine = engine;</span>
+<span class="fc" id="L761">            return this;</span>
+        }
+
+        /**
+         * sets the source factory for creating sources, default is a new instance
+         * of {@link DefaultSourceFactory} with default settings.
+         *
+         * @param sourceFactory source factory
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setSourceFactory(final SourceFactory sourceFactory) {
+<span class="fc" id="L776">            check();</span>
+<span class="fc" id="L777">            this.sourceFactory = sourceFactory;</span>
+<span class="fc" id="L778">            return this;</span>
+        }
+        
+        /**
+         * sets the sources layers, default is no layers.
+         *
+         * @param sourcesLayers sources layers
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setSourcesLayers(final List&lt;Sources&gt; sourcesLayers) {
+<span class="fc" id="L792">            check();</span>
+<span class="fc" id="L793">            this.sourcesLayers = sourcesLayers;</span>
+<span class="fc" id="L794">            return this;</span>
+        }
+        
+        /**
+         * sets the sources layers, default is no layers.
+         *
+         * @param sourcesLayers sources layers
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setSourcesLayers(final Sources... sourcesLayers) {
+<span class="fc" id="L808">            return setSourcesLayers(Arrays.asList(sourcesLayers));</span>
+        }
+
+        /**
+         * sets the update notification notifier, default none (null).
+         *
+         * @param updateExceptionNotifier update notification notifier
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setUpdateExceptionNotifier(final UpdateExceptionNotifier updateExceptionNotifier) {
+<span class="fc" id="L822">            check();</span>
+<span class="fc" id="L823">            this.updateExceptionNotifier = updateExceptionNotifier;</span>
+<span class="fc" id="L824">            return this;</span>
+        }
+        
+        /**
+         * sets the latency in milliseconds for checking if need to
+         * recompile sources layers, default is {@link #DEFAULT_LATENCY_MS}.
+         *
+         * @param latencyMs latency in milliseconds
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setLatencyMs(final long latencyMs) {
+<span class="fc" id="L839">            check();</span>
+<span class="fc" id="L840">            this.latencyMs = latencyMs;</span>
+<span class="fc" id="L841">            return this;</span>
+        }
+
+        /**
+         * gets the engine.
+         *
+         * @return engine
+         * 
+         * @since 1.0
+         */
+        public Engine getEngine() {
+<span class="fc" id="L852">            return engine;</span>
+        }
+        
+        /**
+         * gets the source factory for creating sources.
+         *
+         * @return source factory
+         * 
+         * @since 1.0
+         */
+        public SourceFactory getSourceFactory() {
+<span class="fc" id="L863">            return sourceFactory;</span>
+        }
+        
+        /**
+         * gets the sources layers.
+         *
+         * @return sources layers
+         * 
+         * @since 1.0
+         */
+        public List&lt;Sources&gt; getSourcesLayers() {
+<span class="fc" id="L874">            return sourcesLayers;</span>
+        }
+        
+        /**
+         * gets the update notification notifier.
+         *
+         * @return update notification notifier
+         * 
+         * @since 1.0
+         */
+        public UpdateExceptionNotifier getUpdateExceptionNotifier() {
+<span class="fc" id="L885">            return updateExceptionNotifier;</span>
+        }
+        
+        /**
+         * gets the latency in milliseconds.
+         *
+         * @return latency in milliseconds
+         * 
+         * @since 1.0
+         */
+        public long getLatencyMs() {
+<span class="fc" id="L896">            return latencyMs;</span>
+        }
+        
+        private Builder commit() {
+<span class="fc bfc" id="L900" title="All 2 branches covered.">            if (!isCommitted) {</span>
+<span class="fc bfc" id="L901" title="All 2 branches covered.">                if (engine == null) {</span>
+<span class="fc" id="L902">                    engine = new LayeredEngine.Builder().build();</span>
+                }
+<span class="fc bfc" id="L904" title="All 2 branches covered.">                if (sourceFactory == null) {</span>
+<span class="fc" id="L905">                    sourceFactory = new DefaultSourceFactory();</span>
+                }
+<span class="fc bfc" id="L907" title="All 2 branches covered.">                if (sourcesLayers == null) {</span>
+<span class="fc" id="L908">                    sourcesLayers = new LinkedList&lt;&gt;();</span>
+                }
+<span class="fc bfc" id="L910" title="All 2 branches covered.">                if (latencyMs &lt; 0) {</span>
+<span class="fc" id="L911">                    latencyMs = DEFAULT_LATENCY_MS;</span>
+                }
+<span class="fc" id="L913">                isCommitted = true;</span>
+            }
+<span class="fc" id="L915">            return this;</span>
+        }
+        
+        /**
+         * builds a new instance of {@link Grengine}.
+         *
+         * @return new instance
+         * 
+         * @since 1.0
+         */
+        public Grengine build() {
+<span class="fc" id="L926">            commit();</span>
+<span class="fc" id="L927">            return new Grengine(this);</span>
+        }
+                
+        private void check() {
+<span class="fc bfc" id="L931" title="All 2 branches covered.">            if (isCommitted) {</span>
+<span class="fc" id="L932">                throw new IllegalStateException(&quot;Builder already used.&quot;);</span>
+            }
+<span class="fc" id="L934">        }</span>
+
+    }
+
+    /**
+     * Convenience class for easily getting a Grengine that works with Grape,
+     * eliminating also a Groovy issue related to Grape (GROOVY-7407).
+     * &lt;p&gt;
+     * Call {@link #activate()} once before using the &lt;code&gt;newGrengine()&lt;/code&gt;
+     * methods to create a Grengine instance that works with Grape.
+     * &lt;p&gt;
+     * See the user manual at &quot;Grengine and Grape&quot; and the {@link DefaultGroovyCompiler}
+     * class for more information.
+     *
+     * @since 1.2
+     *
+     * @author Alain Stalder
+     * @author Made in Switzerland.
+     */
+<span class="fc" id="L953">    public static class Grape {</span>
+
+        /**
+         * activate Grape.
+         * &lt;p&gt;
+         * See {@link DefaultGroovyCompiler#enableGrapeSupport()} and
+         * the user manual for more information.
+         *
+         * @since 1.2
+         */
+        public static void activate() {
+<span class="fc" id="L964">            DefaultGroovyCompiler.enableGrapeSupport();</span>
+<span class="fc" id="L965">        }</span>
+
+        /**
+         * activate Grape.
+         * &lt;p&gt;
+         * See {@link DefaultGroovyCompiler#enableGrapeSupport(Object)} and
+         * the user manual for more information.
+         *
+         * @param lock lock to use
+         *
+         * @since 1.2
+         */
+        public static void activate(final Object lock) {
+<span class="fc" id="L978">            DefaultGroovyCompiler.enableGrapeSupport(lock);</span>
+<span class="fc" id="L979">        }</span>
+
+        /**
+         * deactivate Grape.
+         * &lt;p&gt;
+         * See {@link DefaultGroovyCompiler#disableGrapeSupport()} and the user
+         * manual for more information.
+         *
+         * @since 1.2
+         */
+        public static void deactivate() {
+<span class="fc" id="L990">            DefaultGroovyCompiler.disableGrapeSupport();</span>
+<span class="fc" id="L991">        }</span>
+
+
+        /**
+         * equivalent to {@link Grengine#Grengine()},
+         * with the following differences.
+         * &lt;p&gt;
+         * Parent class loader is a GroovyClassLoader with the context
+         * class loader of the current thread as its parent.
+         * Compiler configuration is the default compiler configuration,
+         * with added Grape support.
+         *
+         * @return new instance
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine() {
+<span class="fc" id="L1008">            final GroovyClassLoader parent = new GroovyClassLoader();</span>
+<span class="fc" id="L1009">            final CompilerConfiguration config = new CompilerConfiguration();</span>
+<span class="fc" id="L1010">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1011">            return new Grengine(builderEmpty(parent, false, config, false));</span>
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(CompilerConfiguration)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Parent class loader is a GroovyClassLoader with the context
+         * class loader of the current thread as its parent.
+         *
+         * @param config compiler configuration to use for compiling all sources,
+         *               Grape support is added to it
+         *
+         * @return new instance
+         * @throws NullPointerException if the compiler configuration is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final CompilerConfiguration config) {
+<span class="fc" id="L1030">            final GroovyClassLoader parent = new GroovyClassLoader();</span>
+<span class="fc" id="L1031">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1032">            return new Grengine(builderEmpty(parent, false, config, false));</span>
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(ClassLoader)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Compiler configuration is the default compiler configuration,
+         * with added Grape support.
+         *
+         * @param parent parent class loader for the engine
+         *
+         * @return new instance
+         * @throws NullPointerException if the parent class loader is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final GroovyClassLoader parent) {
+<span class="fc" id="L1050">            final CompilerConfiguration config = new CompilerConfiguration();</span>
+<span class="fc" id="L1051">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1052">            return new Grengine(builderEmpty(parent, false, config, false));</span>
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(ClassLoader, CompilerConfiguration)}.
+         *
+         * @param parent parent class loader for the engine
+         * @param config compiler configuration to use for compiling all sources,
+         *               Grape support is added to it
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final GroovyClassLoader parent, final CompilerConfiguration config) {
+<span class="fc" id="L1068">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1069">            return new Grengine(builderEmpty(parent, false, config, false));</span>
+        }
+
+
+        /**
+         * equivalent to {@link Grengine#Grengine(File)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Parent class loader is a GroovyClassLoader with the context
+         * class loader of the current thread as its parent.
+         * Compiler configuration is the default compiler configuration,
+         * with added Grape support.
+         *
+         * @param dir script directory
+         *
+         * @return new instance
+         * @throws NullPointerException if the directory is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final File dir) {
+<span class="fc" id="L1090">            final GroovyClassLoader parent = new GroovyClassLoader();</span>
+<span class="fc" id="L1091">            final CompilerConfiguration config = new CompilerConfiguration();</span>
+<span class="fc" id="L1092">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1093">            return new Grengine(builderFromDir(parent, false, config, false,</span>
+                    dir, DirMode.NO_SUBDIRS));
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(CompilerConfiguration, File)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Parent class loader is a GroovyClassLoader with the context
+         * class loader of the current thread as its parent.
+         *
+         * @param config compiler configuration to use for compiling all sources,
+         *               Grape support is added to it
+         * @param dir script directory
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final CompilerConfiguration config, final File dir) {
+<span class="fc" id="L1114">            final GroovyClassLoader parent = new GroovyClassLoader();</span>
+<span class="fc" id="L1115">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1116">            return new Grengine(builderFromDir(parent, false, config, false,</span>
+                    dir, DirMode.NO_SUBDIRS));
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(ClassLoader, File)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Compiler configuration is the default compiler configuration,
+         * with added Grape support.
+         *
+         * @param parent parent class loader for the engine
+         * @param dir script directory
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final GroovyClassLoader parent, final File dir) {
+<span class="fc" id="L1136">            final CompilerConfiguration config = new CompilerConfiguration();</span>
+<span class="fc" id="L1137">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1138">            return new Grengine(builderFromDir(parent, false, config, false,</span>
+                    dir, DirMode.NO_SUBDIRS));
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(ClassLoader, CompilerConfiguration, File)}.
+         *
+         * @param parent parent class loader for the engine
+         * @param config compiler configuration to use for compiling all sources,
+         *               Grape support is added to it
+         * @param dir script directory
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final GroovyClassLoader parent, final CompilerConfiguration config, final File dir) {
+<span class="fc" id="L1156">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1157">            return new Grengine(builderFromDir(parent, false, config, false,</span>
+                    dir, DirMode.NO_SUBDIRS));
+        }
+
+
+        /**
+         * equivalent to {@link Grengine#Grengine(File, DirMode)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Parent class loader is a GroovyClassLoader with the context
+         * class loader of the current thread as its parent.
+         * Compiler configuration is the default compiler configuration,
+         * with added Grape support.
+         *
+         * @param dir script directory
+         * @param dirMode dir mode
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         * 
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final File dir, final DirMode dirMode) {
+<span class="fc" id="L1180">            final GroovyClassLoader parent = new GroovyClassLoader();</span>
+<span class="fc" id="L1181">            final CompilerConfiguration config = new CompilerConfiguration();</span>
+<span class="fc" id="L1182">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1183">            return new Grengine(builderFromDir(parent, false, config, false,</span>
+                    dir, dirMode));
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(CompilerConfiguration, File, DirMode)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Parent class loader is a GroovyClassLoader with the context
+         * class loader of the current thread as its parent.
+         *
+         * @param config compiler configuration to use for compiling all sources,
+         *               Grape support is added to it
+         * @param dir script directory
+         * @param dirMode dir mode
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final CompilerConfiguration config, final File dir, final DirMode dirMode) {
+<span class="fc" id="L1205">            final GroovyClassLoader parent = new GroovyClassLoader();</span>
+<span class="fc" id="L1206">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1207">            return new Grengine(builderFromDir(parent, false, config, false,</span>
+                    dir, dirMode));
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(ClassLoader, File, DirMode)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Compiler configuration is the default compiler configuration,
+         * with added Grape support.
+         *
+         * @param parent parent class loader for the engine
+         * @param dir script directory
+         * @param dirMode dir mode
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final GroovyClassLoader parent, final File dir, final DirMode dirMode) {
+<span class="fc" id="L1228">            final CompilerConfiguration config = new CompilerConfiguration();</span>
+<span class="fc" id="L1229">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1230">            return new Grengine(builderFromDir(parent, false, config, false,</span>
+                    dir, dirMode));
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(ClassLoader, CompilerConfiguration, File, DirMode)}.
+         *
+         * @param parent parent class loader for the engine
+         * @param config compiler configuration to use for compiling all sources,
+         *               Grape support is added to it
+         * @param dir script directory
+         * @param dirMode dir mode
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final GroovyClassLoader parent, final CompilerConfiguration config,
+                final File dir, final DirMode dirMode) {
+<span class="fc" id="L1250">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1251">            return new Grengine(builderFromDir(parent, false, config, false,</span>
+                    dir, dirMode));
+        }
+
+
+        /**
+         * equivalent to {@link Grengine#Grengine(Collection)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Parent class loader is a GroovyClassLoader with the context
+         * class loader of the current thread as its parent.
+         * Compiler configuration is the default compiler configuration,
+         * with added Grape support.
+         *
+         * @param urls collection of URL-based scripts
+         *
+         * @return new instance
+         * @throws NullPointerException if the URL collection is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L1273">            final GroovyClassLoader parent = new GroovyClassLoader();</span>
+<span class="fc" id="L1274">            final CompilerConfiguration config = new CompilerConfiguration();</span>
+<span class="fc" id="L1275">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1276">            return new Grengine(builderFromUrls(parent, false, config, false, urls));</span>
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(CompilerConfiguration, Collection)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Parent class loader is a GroovyClassLoader with the context
+         * class loader of the current thread as its parent.
+         *
+         * @param config compiler configuration to use for compiling all sources,
+         *               Grape support is added to it
+         * @param urls collection of URL-based scripts
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final CompilerConfiguration config, final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L1296">            final GroovyClassLoader parent = new GroovyClassLoader();</span>
+<span class="fc" id="L1297">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1298">            return new Grengine(builderFromUrls(parent, false, config, false, urls));</span>
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(ClassLoader, Collection)},
+         * with the following differences.
+         * &lt;p&gt;
+         * Compiler configuration is the default compiler configuration,
+         * with added Grape support.
+         *
+         * @param parent parent class loader for the engine
+         * @param urls collection of URL-based scripts
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final GroovyClassLoader parent, final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L1317">            final CompilerConfiguration config = new CompilerConfiguration();</span>
+<span class="fc" id="L1318">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1319">            return new Grengine(builderFromUrls(parent, false, config, false, urls));</span>
+        }
+
+        /**
+         * equivalent to {@link Grengine#Grengine(ClassLoader, CompilerConfiguration, Collection)}.
+         *
+         * @param parent parent class loader for the engine
+         * @param config compiler configuration to use for compiling all sources,
+         *               Grape support is added to it
+         * @param urls collection of URL-based scripts
+         *
+         * @return new instance
+         * @throws NullPointerException if any argument is null
+         *
+         * @since 1.2
+         */
+        public static Grengine newGrengine(final GroovyClassLoader parent, final CompilerConfiguration config,
+                final Collection&lt;URL&gt; urls) {
+<span class="fc" id="L1337">            DefaultGroovyCompiler.withGrape(config, parent);</span>
+<span class="fc" id="L1338">            return new Grengine(builderFromUrls(parent, false, config, false, urls));</span>
+        }
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
