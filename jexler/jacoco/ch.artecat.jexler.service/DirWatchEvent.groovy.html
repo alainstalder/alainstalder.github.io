@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DirWatchEvent.groovy</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jexler-core</a> &gt; <a href="index.source.html" class="el_package">ch.artecat.jexler.service</a> &gt; <span class="el_source">DirWatchEvent.groovy</span></div><h1>DirWatchEvent.groovy</h1><pre class="source lang-java linenums">/*
+   Copyright 2012-now  Jex Jexler (Alain Stalder)
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.artecat.jexler.service
+
+import groovy.transform.CompileStatic
+
+import java.nio.file.Path
+import java.nio.file.WatchEvent
+
+/**
+ * Directory watch service event.
+ *
+ * @author Jex Jexler (Alain Stalder)
+ */
+@CompileStatic
+class DirWatchEvent extends EventBase {
+
+    private final File file
+    private final WatchEvent.Kind&lt;Path&gt; kind
+    
+    /**
+     * Constructor.
+     * @param service the service that created the event
+     * @param file the file that has been created, modified or deleted
+     * @param kind what happened with the file
+     */
+    DirWatchEvent(final Service service, final File file, final WatchEvent.Kind&lt;Path&gt; kind) {
+<span class="fc" id="L42">        super(service)</span>
+<span class="fc" id="L43">        this.file = file</span>
+<span class="fc" id="L44">        this.kind = kind</span>
+<span class="fc" id="L45">    }</span>
+
+    /**
+     * Get file that has been created, modified or deleted.
+     */
+    File getFile() {
+<span class="fc" id="L51">        return file</span>
+<span class="nc" id="L52">    }</span>
+
+    /**
+     * Get what happened with the file.
+     */
+    WatchEvent.Kind getKind() {
+<span class="fc" id="L58">        return kind</span>
+<span class="nc" id="L59">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
