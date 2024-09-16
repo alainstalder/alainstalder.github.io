@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Loader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.engine</a> &gt; <span class="el_source">Loader.java</span></div><h1>Loader.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.engine;
+
+import ch.grengine.load.DefaultClassReleaser;
+import ch.grengine.load.ClassReleaser;
+import ch.grengine.load.SourceClassLoader;
+
+import java.io.Closeable;
+
+import static java.util.Objects.requireNonNull;
+
+/**
+ * Wrapper for a {@link SourceClassLoader} that can only be used
+ * by the {@link Engine} that created it.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class Loader implements Closeable {
+
+    private final EngineId engineId;
+    private final long number;
+    private final boolean isAttached;
+    private final ClassReleaser classReleaser;
+    private SourceClassLoader sourceClassLoader;
+
+    /**
+     * constructor, with default class releaser.
+     * 
+     * @param engineId the engine ID, used to authenticate the caller in some instance methods
+     * @param number the loader number
+     * @param isAttached whether the loader is attached to the engine or not
+     * @param sourceClassLoader the {@link SourceClassLoader} to use for loading classes
+     * 
+     * @throws NullPointerException if any of the arguments is null
+     * 
+     * @since 1.0
+     */
+    public Loader(final EngineId engineId, final long number, final boolean isAttached,
+            final SourceClassLoader sourceClassLoader) {
+<span class="fc" id="L58">        this(engineId, number, isAttached, DefaultClassReleaser.getInstance(), sourceClassLoader);</span>
+<span class="fc" id="L59">    }</span>
+
+    /**
+     * constructor, with given class releaser.
+     *
+     * @param engineId the engine ID, used to authenticate the caller in some instance methods
+     * @param number the loader number
+     * @param isAttached whether the loader is attached to the engine or not
+     * @param classReleaser the class releaser
+     * @param sourceClassLoader the {@link SourceClassLoader} to use for loading classes
+     *
+     * @throws NullPointerException if any of the arguments is null
+     *
+     * @since 1.1
+     */
+    public Loader(final EngineId engineId, final long number, final boolean isAttached,
+<span class="fc" id="L75">            final ClassReleaser classReleaser, final SourceClassLoader sourceClassLoader) {</span>
+<span class="fc" id="L76">        requireNonNull(engineId, &quot;Engine ID is null.&quot;);</span>
+<span class="fc" id="L77">        requireNonNull(sourceClassLoader, &quot;Source class loader is null.&quot;);</span>
+<span class="fc" id="L78">        this.engineId = engineId;</span>
+<span class="fc" id="L79">        this.number = number;</span>
+<span class="fc" id="L80">        this.isAttached = isAttached;</span>
+<span class="fc" id="L81">        this.classReleaser = classReleaser;</span>
+<span class="fc" id="L82">        setSourceClassLoader(engineId, sourceClassLoader);</span>
+<span class="fc" id="L83">    }</span>
+
+    /**
+     * gets the source class loader (if the engine ID matches).
+     *
+     * @param engineId engine ID
+     *
+     * @return source class loader
+     * @throws IllegalArgumentException if the engine ID does not match
+     * 
+     * @since 1.0
+     */
+    public SourceClassLoader getSourceClassLoader(final EngineId engineId) {
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (engineId != this.engineId) {</span>
+<span class="fc" id="L97">            throw new IllegalArgumentException(&quot;Engine ID does not match (loader created by a different engine).&quot;);</span>
+        }
+<span class="fc" id="L99">        return sourceClassLoader;</span>
+    }
+
+    /**
+     * sets the source class loader (if the engine ID matches).
+     *
+     * @param engineId engine ID
+     * @param sourceClassLoader source class loader
+     *
+     * @throws IllegalArgumentException if the engine ID does not match
+     * 
+     * @since 1.0
+     */
+    public void setSourceClassLoader(final EngineId engineId, final SourceClassLoader sourceClassLoader) {
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if (engineId != this.engineId) {</span>
+<span class="fc" id="L114">            throw new IllegalArgumentException(&quot;Engine ID does not match (loader created by a different engine).&quot;);</span>
+        }
+<span class="fc" id="L116">        this.sourceClassLoader = sourceClassLoader;</span>
+<span class="fc" id="L117">    }</span>
+    
+    /**
+     * gets the loader number.
+     *
+     * @return loader number
+     * 
+     * @since 1.0
+     */
+    public long getNumber() {
+<span class="fc" id="L127">        return number;</span>
+    }
+    
+    /**
+     * gets whether the loader is attached to the engine or not.
+     *
+     * @return whether the loader is attached to the engine or not
+     * 
+     * @since 1.0
+     */
+    public boolean isAttached() {
+<span class="fc" id="L138">        return isAttached;</span>
+    }
+   
+    /**
+     * two loaders are equal if and only if their loader number and their engine ID are equal.
+     *
+     * @since 1.0
+     */
+    @Override
+    public boolean equals(final Object obj) {
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        if (!(obj instanceof Loader)) return false;</span>
+<span class="fc" id="L149">        final Loader loader = (Loader)obj;</span>
+<span class="fc bfc" id="L150" title="All 4 branches covered.">        return this.number == loader.number &amp;&amp; this.engineId == loader.engineId;</span>
+    }
+    
+    /**
+     * implementation based on loader number and engine ID.
+     * 
+     * @since 1.0
+     */
+    @Override
+    public int hashCode() {
+<span class="fc" id="L160">        return (int)number * 17  + engineId.hashCode();</span>
+    }
+
+    /**
+     * returns a string suitable for logging.
+     *
+     * @return a string suitable for logging
+     * 
+     * @since 1.0
+     */
+    public String toString() {
+<span class="fc" id="L171">        return this.getClass().getSimpleName() + &quot;[engineId=&quot; + engineId +</span>
+        &quot;, number=&quot; + number + &quot;, isAttached=&quot; + isAttached + &quot;]&quot;;
+    }
+
+    /**
+     * release metadata for all classed ever loaded using this loader.
+     * &lt;p&gt;
+     * Allows to remove metadata associated by Groovy (or Java) with a class,
+     * which is often necessary to get on-the-fly garbage collection.
+     * &lt;p&gt;
+     * Generally call only when really done using this loader and
+     * all loaded classes; subsequently trying to use this loader
+     * or its classes results generally in undefined behavior.
+     *
+     * @since 1.1
+     */
+    @Override
+    public void close() {
+<span class="fc" id="L189">        sourceClassLoader.releaseClasses(classReleaser);</span>
+<span class="fc" id="L190">    }</span>
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

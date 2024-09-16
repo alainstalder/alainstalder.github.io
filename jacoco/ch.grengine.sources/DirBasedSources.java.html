@@ -1,0 +1,446 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DirBasedSources.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.sources</a> &gt; <span class="el_source">DirBasedSources.java</span></div><h1>DirBasedSources.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.sources;
+
+import ch.grengine.code.groovy.DefaultGroovyCompilerFactory;
+import ch.grengine.source.DefaultSourceFactory;
+import ch.grengine.source.Source;
+import ch.grengine.source.SourceUtil;
+import ch.grengine.code.CompilerFactory;
+import ch.grengine.source.SourceFactory;
+
+import java.io.File;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import static java.util.Objects.requireNonNull;
+
+
+/**
+ * Sources based on a directory with script files.
+ * &lt;p&gt;
+ * Script file extensions and whether to also scan subdirectories
+ * is configurable.
+ * &lt;p&gt;
+ * The implementation is basic, but may still be good enough for many
+ * use cases in practice: Invisible files, as well as invisible or
+ * unlistable directories, are ignored; no attempts are made to detect
+ * symlinks.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class DirBasedSources extends BaseSources {
+        
+    private final Builder builder;
+
+    private final File dir;
+    private final DirMode dirMode;
+    private final Set&lt;String&gt; scriptExtensions;
+    private final SourceFactory sourceFactory;
+
+    /**
+     * constructor from builder.
+     *
+     * @param builder builder
+     * 
+     * @since 1.0
+     */
+<span class="fc" id="L66">    protected DirBasedSources(final Builder builder) {</span>
+<span class="fc" id="L67">        this.builder = builder.commit();</span>
+        
+<span class="fc" id="L69">        dir = builder.getDir();</span>
+<span class="fc" id="L70">        dirMode = builder.getDirMode();</span>
+<span class="fc" id="L71">        scriptExtensions = builder.getScriptExtensions();</span>
+<span class="fc" id="L72">        sourceFactory = builder.getSourceFactory();</span>
+        
+<span class="fc" id="L74">        super.init(builder.getName(), builder.getCompilerFactory(), builder.getLatencyMs());</span>
+<span class="fc" id="L75">    }</span>
+
+    /**
+     * gets the updated source set.
+     *
+     * @return updated source set
+     *
+     * @since 1.0
+     */
+    @Override
+    protected Set&lt;Source&gt; getSourceSetNew() {
+<span class="fc" id="L86">        final Set&lt;Source&gt; sourceSet = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L87">        fromDirectoryAddRecursively(sourceSet, dir, true);</span>
+<span class="fc" id="L88">        return sourceSet;</span>
+    }
+
+    /**
+     * gets the script file directory.
+     *
+     * @return script file directory
+     * 
+     * @since 1.0
+     */
+    public File getDir() {
+<span class="fc" id="L99">        return dir;</span>
+    }
+    
+    /**
+     * gets the dir mode.
+     *
+     * @return dir mode
+     * 
+     * @since 1.0
+     */
+    public DirMode getDirMode() {
+<span class="fc" id="L110">        return dirMode;</span>
+    }
+    
+    /**
+     * gets the set of script extensions.
+     *
+     * @return set of script extensions
+     * 
+     * @since 1.0
+     */
+    public Set&lt;String&gt; getScriptExtensions() {
+<span class="fc" id="L121">        return scriptExtensions;</span>
+    }
+    
+    /**
+     * gets the builder.
+     *
+     * @return builder
+     * 
+     * @since 1.0
+     */
+    public Builder getBuilder() {
+<span class="fc" id="L132">        return builder;</span>
+    }
+
+    
+    private void fromDirectoryAddRecursively(final Set&lt;Source&gt; sources, final File file, final boolean firstDir) {
+<span class="fc bfc" id="L137" title="All 4 branches covered.">        if (!firstDir &amp;&amp; file.isHidden()) {</span>
+<span class="fc" id="L138">            return;</span>
+        }
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (file.isDirectory()) {</span>
+<span class="fc bfc" id="L141" title="All 4 branches covered.">            if (firstDir || dirMode==DirMode.WITH_SUBDIRS_RECURSIVE) {</span>
+<span class="fc" id="L142">                final File[] listedFiles = file.listFiles();</span>
+<span class="pc bpc" id="L143" title="1 of 2 branches missed.">                if (listedFiles != null) {</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">                    for (File listedFile : listedFiles) {</span>
+<span class="fc" id="L145">                        fromDirectoryAddRecursively(sources, listedFile, false);</span>
+                    }
+                }
+<span class="fc" id="L148">            }</span>
+<span class="fc bfc" id="L149" title="All 2 branches covered.">        } else if (file.isFile()) {</span>
+<span class="fc" id="L150">            final String name = file.getName();</span>
+<span class="fc" id="L151">            final int i = name.lastIndexOf('.');</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">            if (i&gt;=0) {</span>
+<span class="fc" id="L153">                String ext = name.substring(i+1);</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">                if (scriptExtensions.contains(ext)) {</span>
+<span class="fc" id="L155">                    sources.add(sourceFactory.fromFile(file));</span>
+                }
+            }
+        }
+<span class="fc" id="L159">    }</span>
+    
+    
+    /**
+     * Builder for instances of {@link DirBasedSources}.
+     * 
+     * @since 1.0
+     * 
+     * @author Alain Stalder
+     * @author Made in Switzerland.
+     */
+    public static class Builder {
+        
+        /**
+         * the default latency (5000ms = five seconds).
+         * 
+         * @since 1.0
+         */
+        public static final long DEFAULT_LATENCY_MS = 5000L;
+
+        private boolean isCommitted;
+        
+        private final File dir;
+        private DirMode dirMode;
+        private Set&lt;String&gt; scriptExtensions;
+        private String name;
+        private CompilerFactory compilerFactory;
+        private SourceFactory sourceFactory;
+<span class="fc" id="L187">        private long latencyMs = -1;</span>
+        
+        /**
+         * constructor from script file directory.
+         * &lt;p&gt;
+         * The given file is immediately converted to the canonical file,
+         * with fallback to the absolute file.
+         *
+         * @param dir script file directory
+         *
+         * @throws NullPointerException if the directory is null
+         * 
+         * @since 1.0
+         */
+<span class="fc" id="L201">        public Builder(final File dir) {</span>
+<span class="fc" id="L202">            requireNonNull(dir, &quot;Dir is null.&quot;);</span>
+<span class="fc" id="L203">            this.dir = SourceUtil.toCanonicalOrAbsoluteFile(dir);</span>
+<span class="fc" id="L204">            isCommitted = false;</span>
+<span class="fc" id="L205">        }</span>
+        
+        /**
+         * sets the dir mode, default is not to scan subdirectories.
+         *
+         * @param dirMode dir mode
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setDirMode(final DirMode dirMode) {
+<span class="fc" id="L218">            check();</span>
+<span class="fc" id="L219">            this.dirMode = dirMode;</span>
+<span class="fc" id="L220">            return this;</span>
+        }
+
+        /**
+         * sets the script extensions, default is only &quot;groovy&quot;.
+         *
+         * @param scriptExtensions script extensions
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setScriptExtensions(final Set&lt;String&gt; scriptExtensions) {
+<span class="fc" id="L234">            check();</span>
+<span class="fc" id="L235">            this.scriptExtensions = scriptExtensions;</span>
+<span class="fc" id="L236">            return this;</span>
+        }
+
+        /**
+         * sets the script extensions, default is only &quot;groovy&quot;.
+         *
+         * @param scriptExtensions script extensions
+         *
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setScriptExtensions(final String... scriptExtensions) {
+<span class="fc" id="L250">            Set&lt;String&gt; set = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L251">            Collections.addAll(set, scriptExtensions);</span>
+<span class="fc" id="L252">            return setScriptExtensions(set);</span>
+        }
+
+        /**
+         * sets the sources name, default is the canonical file path,
+         * with fallback to the absolute file path.
+         *
+         * @param name sources name
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setName(final String name) {
+<span class="fc" id="L267">            check();</span>
+<span class="fc" id="L268">            this.name = name;</span>
+<span class="fc" id="L269">            return this;</span>
+        }
+
+        /**
+         * sets the compiler factory for compiling sources, default
+         * is a new instance of {@link DefaultGroovyCompilerFactory}.
+         *
+         * @param compilerFactory compiler factory
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setCompilerFactory(CompilerFactory compilerFactory) {
+<span class="fc" id="L284">            check();</span>
+<span class="fc" id="L285">            this.compilerFactory = compilerFactory;</span>
+<span class="fc" id="L286">            return this;</span>
+        }
+
+        /**
+         * sets the source factory for creating sources from files, default
+         * is a new instance of {@link DefaultSourceFactory}.
+         *
+         * @param sourceFactory source factory
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setSourceFactory(final SourceFactory sourceFactory) {
+<span class="fc" id="L301">            check();</span>
+<span class="fc" id="L302">            this.sourceFactory = sourceFactory;</span>
+<span class="fc" id="L303">            return this;</span>
+        }
+
+        /**
+         * sets the latency in milliseconds for checking if script files
+         * in the directory have changed, default is {@link #DEFAULT_LATENCY_MS}.
+         *
+         * @param latencyMs latency in milliseconds
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setLatencyMs(final long latencyMs) {
+<span class="fc" id="L318">            check();</span>
+<span class="fc" id="L319">            this.latencyMs = latencyMs;</span>
+<span class="fc" id="L320">            return this;</span>
+        }
+
+        /**
+         * gets the script file directory.
+         *
+         * @return script file directory
+         * 
+         * @since 1.0
+         */
+        public File getDir() {
+<span class="fc" id="L331">            return dir;</span>
+        }
+        
+        /**
+         * gets the dir mode.
+         *
+         * @return dir mode
+         * 
+         * @since 1.0
+         */
+        public DirMode getDirMode() {
+<span class="fc" id="L342">            return dirMode;</span>
+        }
+
+        /**
+         * gets the script extensions.
+         *
+         * @return script extensions
+         * 
+         * @since 1.0
+         */
+        public Set&lt;String&gt; getScriptExtensions() {
+<span class="fc" id="L353">            return scriptExtensions;</span>
+        }
+        
+        /**
+         * gets the sources name.
+         *
+         * @return sources name
+         * 
+         * @since 1.0
+         */
+        public String getName() {
+<span class="fc" id="L364">            return name;</span>
+        }
+        
+        /**
+         * gets the compiler factory.
+         *
+         * @return compiler factory
+         * 
+         * @since 1.0
+         */
+        public CompilerFactory getCompilerFactory() {
+<span class="fc" id="L375">            return compilerFactory;</span>
+        }
+        
+        /**
+         * gets the source factory.
+         *
+         * @return source factory
+         * 
+         * @since 1.0
+         */
+        public SourceFactory getSourceFactory() {
+<span class="fc" id="L386">            return sourceFactory;</span>
+        }
+
+        /**
+         * gets the latency in milliseconds.
+         *
+         * @return latency in milliseconds
+         * 
+         * @since 1.0
+         */
+        public long getLatencyMs() {
+<span class="fc" id="L397">            return latencyMs;</span>
+        }
+        
+        private Builder commit() {
+<span class="fc bfc" id="L401" title="All 2 branches covered.">            if (!isCommitted) {</span>
+<span class="fc bfc" id="L402" title="All 2 branches covered.">                if (dirMode == null) {</span>
+<span class="fc" id="L403">                    dirMode = DirMode.NO_SUBDIRS;</span>
+                }
+<span class="fc bfc" id="L405" title="All 2 branches covered.">                if (scriptExtensions == null) {</span>
+<span class="fc" id="L406">                    scriptExtensions = DefaultGroovyCompilerFactory.DEFAULT_SCRIPT_EXTENSIONS;</span>
+                }
+<span class="fc bfc" id="L408" title="All 2 branches covered.">                if (name == null) {</span>
+<span class="fc" id="L409">                    name = SourceUtil.toCanonicalOrAbsoluteFile(dir).getPath();</span>
+                }
+<span class="fc bfc" id="L411" title="All 2 branches covered.">                if (compilerFactory == null) {</span>
+<span class="fc" id="L412">                    compilerFactory = new DefaultGroovyCompilerFactory();</span>
+                }
+<span class="fc bfc" id="L414" title="All 2 branches covered.">                if (sourceFactory == null) {</span>
+<span class="fc" id="L415">                    sourceFactory = new DefaultSourceFactory();</span>
+                }
+<span class="fc bfc" id="L417" title="All 2 branches covered.">                if (latencyMs &lt; 0) {</span>
+<span class="fc" id="L418">                    latencyMs = DEFAULT_LATENCY_MS;</span>
+                }
+<span class="fc" id="L420">                isCommitted = true;</span>
+            }
+<span class="fc" id="L422">            return this;</span>
+        }
+        
+        /**
+         * builds a new instance of {@link DirBasedSources}.
+         *
+         * @return new instance
+         *
+         * @since 1.0
+         */
+        public DirBasedSources build() {
+<span class="fc" id="L433">            commit();</span>
+<span class="fc" id="L434">            return new DirBasedSources(this);</span>
+        }
+                
+        private void check() {
+<span class="fc bfc" id="L438" title="All 2 branches covered.">            if (isCommitted) {</span>
+<span class="fc" id="L439">                throw new IllegalStateException(&quot;Builder already used.&quot;);</span>
+            }
+<span class="fc" id="L441">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

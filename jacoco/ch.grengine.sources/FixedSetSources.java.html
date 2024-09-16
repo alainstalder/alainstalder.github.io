@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FixedSetSources.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.sources</a> &gt; <span class="el_source">FixedSetSources.java</span></div><h1>FixedSetSources.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.sources;
+
+import ch.grengine.source.Source;
+import ch.grengine.code.CompilerFactory;
+import ch.grengine.code.groovy.DefaultGroovyCompilerFactory;
+
+import java.util.Set;
+import java.util.UUID;
+
+import static java.util.Objects.requireNonNull;
+
+
+/**
+ * Sources based on a fixed set of {@link Source}.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class FixedSetSources extends BaseSources {
+
+    private final Builder builder;
+
+    private final Set&lt;Source&gt; sourceSet;
+    
+    /**
+     * constructor from builder.
+     *
+     * @param builder builder
+     * 
+     * @since 1.0
+     */
+<span class="fc" id="L50">    public FixedSetSources(final Builder builder) {</span>
+<span class="fc" id="L51">        this.builder = builder.commit();</span>
+<span class="fc" id="L52">        sourceSet = builder.getSourceSet();</span>
+<span class="fc" id="L53">        super.init(builder.getName(), builder.getCompilerFactory(), builder.getLatencyMs());</span>
+<span class="fc" id="L54">    }</span>
+    
+    @Override
+    protected Set&lt;Source&gt; getSourceSetNew() {
+<span class="fc" id="L58">        return sourceSet;</span>
+    }
+    
+    /**
+     * gets the builder.
+     *
+     * @return builder
+     * 
+     * @since 1.0
+     */
+    public Builder getBuilder() {
+<span class="fc" id="L69">        return builder;</span>
+    }    
+    
+    
+    /**
+     * Builder for instances of {@link FixedSetSources}.
+     * 
+     * @since 1.0
+     * 
+     * @author Alain Stalder
+     * @author Made in Switzerland.
+     */
+    public static class Builder {
+        
+        /**
+         * the default latency (5000ms = five seconds).
+         * 
+         * @since 1.0
+         */
+        public static final long DEFAULT_LATENCY_MS = 5000L;
+        
+        private boolean isCommitted;
+        
+        private final Set&lt;Source&gt; sourceSet;
+        private String name;
+        private CompilerFactory compilerFactory;
+<span class="fc" id="L95">        private long latencyMs = -1;</span>
+        
+        /**
+         * constructor from fixed source set.
+         *
+         * @param sourceSet fixed source set
+         * 
+         * @throws NullPointerException if the source set is null
+         * 
+         * @since 1.0
+         */
+<span class="fc" id="L106">        public Builder(final Set&lt;Source&gt; sourceSet) {</span>
+<span class="fc" id="L107">            requireNonNull(sourceSet, &quot;Source set is null.&quot;);</span>
+<span class="fc" id="L108">            this.sourceSet = sourceSet;</span>
+<span class="fc" id="L109">            isCommitted = false;</span>
+<span class="fc" id="L110">        }</span>
+        
+        /**
+         * sets the sources name, default is a generated random ID.
+         *
+         * @param name sources name
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setName(final String name) {
+<span class="fc" id="L123">            check();</span>
+<span class="fc" id="L124">            this.name = name;</span>
+<span class="fc" id="L125">            return this;</span>
+        }
+
+        /**
+         * sets the compiler factory for compiling sources, default
+         * is a new instance of {@link DefaultGroovyCompilerFactory}.
+         *
+         * @param compilerFactory compiler factory
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setCompilerFactory(final CompilerFactory compilerFactory) {
+<span class="fc" id="L140">            check();</span>
+<span class="fc" id="L141">            this.compilerFactory = compilerFactory;</span>
+<span class="fc" id="L142">            return this;</span>
+        }
+
+        /**
+         * sets the latency in milliseconds for checking if script files
+         * in the directory have changed, default is {@link #DEFAULT_LATENCY_MS}.
+         *
+         * @param latencyMs latency in milliseconds
+         * 
+         * @return this, for chaining calls
+         * @throws IllegalStateException if the builder had already been used to build an instance
+         * 
+         * @since 1.0
+         */
+        public Builder setLatencyMs(long latencyMs) {
+<span class="fc" id="L157">            check();</span>
+<span class="fc" id="L158">            this.latencyMs = latencyMs;</span>
+<span class="fc" id="L159">            return this;</span>
+        }
+
+        /**
+         * gets the fixed source set.
+         *
+         * @return fixed source set
+         * 
+         * @since 1.0
+         */
+        public Set&lt;Source&gt; getSourceSet() {
+<span class="fc" id="L170">            return sourceSet;</span>
+        }
+        
+        /**
+         * gets the sources name.
+         *
+         * @return sources name
+         * 
+         * @since 1.0
+         */
+        public String getName() {
+<span class="fc" id="L181">            return name;</span>
+        }
+        
+        /**
+         * gets the compiler factory.
+         *
+         * @return compiler factory
+         * 
+         * @since 1.0
+         */
+        public CompilerFactory getCompilerFactory() {
+<span class="fc" id="L192">            return compilerFactory;</span>
+        }
+        
+        /**
+         * gets the latency in milliseconds.
+         *
+         * @return latency in milliseconds
+         * 
+         * @since 1.0
+         */
+        public long getLatencyMs() {
+<span class="fc" id="L203">            return latencyMs;</span>
+        }
+        
+        private Builder commit() {
+<span class="fc bfc" id="L207" title="All 2 branches covered.">            if (!isCommitted) {</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">                if (name == null) {</span>
+<span class="fc" id="L209">                    name = UUID.randomUUID().toString();</span>
+                }
+<span class="fc bfc" id="L211" title="All 2 branches covered.">                if (compilerFactory == null) {</span>
+<span class="fc" id="L212">                    compilerFactory = new DefaultGroovyCompilerFactory();</span>
+                }
+<span class="fc bfc" id="L214" title="All 2 branches covered.">                if (latencyMs &lt; 0) {</span>
+<span class="fc" id="L215">                    latencyMs = DEFAULT_LATENCY_MS;</span>
+                }
+<span class="fc" id="L217">                isCommitted = true;</span>
+            }
+<span class="fc" id="L219">            return this;</span>
+        }
+        
+        /**
+         * builds a new instance of {@link FixedSetSources}.
+         *
+         * @return new instance
+         *
+         * @since 1.0
+         */
+        public FixedSetSources build() {
+<span class="fc" id="L230">            commit();</span>
+<span class="fc" id="L231">            return new FixedSetSources(this);</span>
+        }
+                
+        private void check() {
+<span class="fc bfc" id="L235" title="All 2 branches covered.">            if (isCommitted) {</span>
+<span class="fc" id="L236">                throw new IllegalStateException(&quot;Builder already used.&quot;);</span>
+            }
+<span class="fc" id="L238">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

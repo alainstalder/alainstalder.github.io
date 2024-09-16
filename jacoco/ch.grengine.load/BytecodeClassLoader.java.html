@@ -1,0 +1,347 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BytecodeClassLoader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.load</a> &gt; <span class="el_source">BytecodeClassLoader.java</span></div><h1>BytecodeClassLoader.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.load;
+
+import ch.grengine.source.Source;
+import ch.grengine.code.Bytecode;
+import ch.grengine.code.Code;
+import ch.grengine.except.LoadException;
+
+import java.lang.ref.WeakReference;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+import static java.util.Objects.requireNonNull;
+
+
+/**
+ * Bytecode-based class loader that also implements the {@link SourceClassLoader}
+ * interface.
+ * &lt;p&gt;
+ * Loads classes based on given bytecode or from the parent class loader.
+ * Depending on the given load mode, the parent class loader is searched
+ * first or last.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class BytecodeClassLoader extends SourceClassLoader {
+
+    // available in Java 9 and later
+    private static final Method GET_DEFINED_PACKAGE_METHOD;
+    static {
+        Method method;
+        try {
+<span class="nc" id="L55">            method = BytecodeClassLoader.class.getMethod(&quot;getDefinedPackage&quot;, String.class);</span>
+<span class="fc" id="L56">        } catch (NoSuchMethodException e) {</span>
+<span class="fc" id="L57">            method = null;</span>
+<span class="nc" id="L58">        }</span>
+<span class="fc" id="L59">        GET_DEFINED_PACKAGE_METHOD = method;</span>
+<span class="fc" id="L60">    }</span>
+    
+    private final LoadMode loadMode;
+    private final Code code;
+<span class="fc" id="L64">    private final Map&lt;String,Object&gt; locks = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L65">    private final Queue&lt;WeakReference&lt;Class&lt;?&gt;&gt;&gt; classQueue = new ConcurrentLinkedQueue&lt;&gt;();</span>
+    
+    /**
+     * constructor.
+     * 
+     * @param parent parent class loader
+     * @param loadMode load mode
+     * @param code code with bytecode for one or more classes
+     * 
+     * @throws NullPointerException if any of the arguments is null
+     * 
+     * @since 1.0
+     */
+    public BytecodeClassLoader(final ClassLoader parent, final LoadMode loadMode, final Code code) {
+<span class="fc" id="L79">        super(requireNonNull(parent, &quot;Parent class loader is null.&quot;));</span>
+<span class="fc" id="L80">        requireNonNull(loadMode, &quot;Load mode is null.&quot;);</span>
+<span class="fc" id="L81">        requireNonNull(code, &quot;Code is null.&quot;);</span>
+<span class="fc" id="L82">        this.loadMode = loadMode;</span>
+<span class="fc" id="L83">        this.code = code;</span>
+<span class="fc" id="L84">    }</span>
+    
+    /*
+     * Default calling sequence of loadClass(..) from Oracle Javadoc:
+     * 
+     * - Invoke findLoadedClass(String) to check if the class has already been loaded.
+     * - Invoke the loadClass method on the parent class loader. If the parent is null
+     *   the class loader built-in to the virtual machine is used, instead.
+     * - Invoke the findClass(String) method to find the class.
+     * 
+     * LoadMode.PARENT_FIRST: Follows this convention; findClass(name) tries to load
+     *   the class from bytecode and, if not present, throws a ClassNotFoundException.
+     * 
+     * LoadMode.CURRENT_FIRST: Instead in loadClass(..) tries first to load the class
+     *   from bytecode, then tries the other two options.
+     */
+
+    private Class&lt;?&gt; loadClassFromBytecode(final String name) {
+<span class="fc" id="L102">        final Bytecode bc = code.getBytecode(name);</span>
+<span class="fc bfc" id="L103" title="All 2 branches covered.">        if (bc == null) {</span>
+<span class="fc" id="L104">            return null;</span>
+        }
+
+        Class&lt;?&gt; clazz;
+
+        final String packageName;
+        final Object packageNameLock;
+        final Object nameLock;
+<span class="fc" id="L112">        synchronized(locks) {</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">            if ((clazz = findLoadedClass(name)) != null) {</span>
+<span class="fc" id="L114">                return clazz;</span>
+            }
+<span class="fc" id="L116">            packageName = getPackageName(name);</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">            packageNameLock = (packageName == null) ? null : locks.computeIfAbsent(packageName, l -&gt; new Object());</span>
+<span class="fc" id="L118">            nameLock = locks.computeIfAbsent(name, l -&gt; new Object());</span>
+<span class="fc" id="L119">        }</span>
+
+        // define package if not already defined
+<span class="fc bfc" id="L122" title="All 2 branches covered.">        if (packageName != null) {</span>
+<span class="fc" id="L123">            synchronized (packageNameLock) {</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">                if (getDefinedPackageOrPackage(packageName) == null) {</span>
+<span class="fc" id="L125">                    definePackage(packageName);</span>
+                }
+<span class="fc" id="L127">            }</span>
+        }
+
+        // define class if not already defined
+<span class="fc" id="L131">        synchronized (nameLock) {</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">            if ((clazz = findLoadedClass(name)) == null) {</span>
+<span class="fc" id="L133">                clazz = defineClass(name, bc.getBytes());</span>
+<span class="fc" id="L134">                classQueue.add(new WeakReference&lt;&gt;(clazz));</span>
+            }
+<span class="fc" id="L136">        }</span>
+
+        // OK to remove locks from map here, because at this point always
+        // both class and package have already been defined, so it does
+        // not matter whether other threads lock on these or other locks
+        // for the same class or package names anymore.
+<span class="fc" id="L142">        synchronized(locks) {</span>
+<span class="fc bfc" id="L143" title="All 2 branches covered.">            if (packageNameLock != null) {</span>
+<span class="fc" id="L144">                locks.remove(packageName);</span>
+            }
+<span class="fc" id="L146">            locks.remove(name);</span>
+<span class="fc" id="L147">        }</span>
+
+<span class="fc" id="L149">        return clazz;</span>
+    }
+
+    private String getPackageName(final String className) {
+<span class="fc" id="L153">        final int i = className.lastIndexOf('.');</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (i &gt;= 0) {</span>
+<span class="fc" id="L155">            return className.substring(0, i);</span>
+        } else {
+<span class="fc" id="L157">            return null;</span>
+        }
+    }
+
+    // package scope for unit tests
+    void definePackage(final String packageName) {
+<span class="fc" id="L163">        definePackage(packageName, null, null, null, null, null, null, null);</span>
+<span class="fc" id="L164">    }</span>
+
+    // package scope for unit tests
+    Class&lt;?&gt; defineClass(final String name, final byte[] bytes) {
+<span class="fc" id="L168">        return defineClass(name, bytes, 0, bytes.length);</span>
+    }
+
+
+    @Override
+    protected Class&lt;?&gt; findClass(final String name) throws ClassNotFoundException {
+
+        final Class&lt;?&gt; clazz;
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        if ((clazz = loadClassFromBytecode(name)) != null) {</span>
+<span class="fc" id="L177">            return clazz;</span>
+        }
+        
+        // not found
+<span class="fc" id="L181">        throw new ClassNotFoundException(name);</span>
+    }
+
+    
+    @Override
+    protected Class&lt;?&gt; loadClass(final String name, final boolean resolve) throws ClassNotFoundException {
+        
+<span class="fc bfc" id="L188" title="All 2 branches covered.">        if (loadMode != LoadMode.CURRENT_FIRST) {</span>
+<span class="fc" id="L189">            return super.loadClass(name, resolve);</span>
+        }
+
+        Class&lt;?&gt; clazz;
+<span class="fc bfc" id="L193" title="All 2 branches covered.">        if ((clazz = loadClassFromBytecode(name)) == null) {</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">            if ((clazz = findLoadedClass(name)) == null) {</span>
+<span class="fc" id="L195">                clazz = getParent().loadClass(name);</span>
+            }
+        }
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        if (resolve) {</span>
+<span class="fc" id="L199">            resolveClass(clazz);</span>
+        }
+<span class="fc" id="L201">        return clazz;</span>
+    }
+    
+    @Override
+    public Class&lt;?&gt; loadMainClass(final Source source) {
+<span class="fc" id="L206">        return loadMainClassBySource(this, source);</span>
+    }
+    
+    @Override
+    public Class&lt;?&gt; loadClass(final Source source, final String name) {
+<span class="fc" id="L211">        return loadClassBySourceAndName(this, source, name);</span>
+    }
+
+    @Override
+    public BytecodeClassLoader findBytecodeClassLoaderBySource(final Source source) {
+<span class="fc" id="L216">        BytecodeClassLoader loader = null;</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        if (getLoadMode() == LoadMode.PARENT_FIRST) {</span>
+<span class="fc bfc" id="L218" title="All 2 branches covered.">            if (getParent() instanceof SourceClassLoader) {</span>
+<span class="fc" id="L219">                loader = ((SourceClassLoader)getParent()).findBytecodeClassLoaderBySource(source);</span>
+            }
+<span class="fc bfc" id="L221" title="All 4 branches covered.">            if (loader == null &amp;&amp; code.isForSource(source)) {</span>
+<span class="fc" id="L222">                loader = this;</span>
+            }
+        } else {
+<span class="fc bfc" id="L225" title="All 2 branches covered.">            if (code.isForSource(source)) {</span>
+<span class="fc" id="L226">                loader = this;</span>
+            }
+<span class="fc bfc" id="L228" title="All 4 branches covered.">            if (loader == null &amp;&amp; (getParent() instanceof SourceClassLoader)) {</span>
+<span class="fc" id="L229">                loader = ((SourceClassLoader)getParent()).findBytecodeClassLoaderBySource(source);</span>
+            }
+        }
+<span class="fc" id="L232">        return loader;</span>
+    }
+    
+    @Override
+    public LoadMode getLoadMode() {
+<span class="fc" id="L237">        return loadMode;</span>
+    }
+    
+    /**
+     * Helper method for loading the main class of the given source from the given class loader.
+     *
+     * @param classLoader class loader
+     * @param source source
+     *
+     * @return main class
+     * @throws LoadException if loading failed, including if the class was not found
+     * 
+     * @since 1.0
+     */
+    public static Class&lt;?&gt; loadMainClassBySource(final ClassLoader classLoader, final Source source) {
+<span class="fc" id="L252">        final BytecodeClassLoader loader = getLoader(classLoader, source);</span>
+<span class="fc" id="L253">        final String name = loader.code.getMainClassName(source);</span>
+<span class="fc" id="L254">        final Class&lt;?&gt; clazz = loader.loadClassFromBytecode(name);</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">        if (clazz == null) {</span>
+<span class="fc" id="L256">            throw new LoadException(&quot;Inconsistent code: &quot; + loader.code +</span>
+                    &quot;. Main class '&quot; + name + &quot;' not found for source. Source: &quot; + source);
+        }
+<span class="fc" id="L259">        return clazz;</span>
+    }
+    
+    /**
+     * Helper method for loading a class with the given name and from the given source
+     * from the given class loader.
+     *
+     * @param classLoader class loader
+     * @param source source
+     * @param name class name
+     *
+     * @return class
+     * @throws LoadException if loading failed, including if the class was not found
+     * 
+     * @since 1.0
+     */
+    public static Class&lt;?&gt; loadClassBySourceAndName(final ClassLoader classLoader, final Source source, 
+            final String name) {
+<span class="fc" id="L277">        final BytecodeClassLoader loader = getLoader(classLoader, source);</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">        if (!loader.code.getClassNames(source).contains(name)) {</span>
+<span class="fc" id="L279">            throw new LoadException(&quot;Class '&quot; + name + &quot;' not found for source. Source: &quot; + source);</span>
+        }
+<span class="fc" id="L281">        final Class&lt;?&gt; clazz = loader.loadClassFromBytecode(name);</span>
+<span class="fc bfc" id="L282" title="All 2 branches covered.">        if (clazz == null) {</span>
+<span class="fc" id="L283">            throw new LoadException(&quot;Inconsistent code: &quot; + loader.code +</span>
+                    &quot;. Class '&quot; + name + &quot;' not found for source. Source: &quot; + source);
+        }
+<span class="fc" id="L286">        return clazz;</span>
+    }
+
+    private static BytecodeClassLoader getLoader(final ClassLoader classLoader, final Source source) {
+<span class="fc" id="L290">        BytecodeClassLoader loader = null;</span>
+<span class="fc bfc" id="L291" title="All 2 branches covered.">        if (classLoader instanceof SourceClassLoader) {</span>
+<span class="fc" id="L292">            loader = ((SourceClassLoader)classLoader).findBytecodeClassLoaderBySource(source);</span>
+        }
+<span class="fc bfc" id="L294" title="All 2 branches covered.">        if (loader == null) {</span>
+<span class="fc" id="L295">            throw new LoadException(&quot;Source not found: &quot; + source);</span>
+        }
+<span class="fc" id="L297">        return loader;</span>
+    }
+    
+    @Override
+    public BytecodeClassLoader clone() {
+<span class="fc" id="L302">        return new BytecodeClassLoader(getParent(), loadMode, code);</span>
+    }
+
+    @Override
+    public void releaseClasses(final ClassReleaser releaser) {
+        WeakReference&lt;Class&lt;?&gt;&gt; ref;
+        do {
+<span class="fc" id="L309">            ref = classQueue.poll();</span>
+<span class="fc bfc" id="L310" title="All 2 branches covered.">            if (ref != null) {</span>
+<span class="fc" id="L311">                Class&lt;?&gt; clazz = ref.get();</span>
+<span class="pc bpc" id="L312" title="1 of 2 branches missed.">                if (clazz != null) {</span>
+                    try {
+<span class="fc" id="L314">                        releaser.release(clazz);</span>
+<span class="fc" id="L315">                    } catch (Exception ignore) {</span>
+<span class="fc" id="L316">                    }</span>
+                }
+            }
+<span class="fc bfc" id="L319" title="All 2 branches covered.">        } while (ref != null);</span>
+<span class="fc" id="L320">    }</span>
+
+    /**
+     * gets the code.
+     *
+     * @return code
+     * 
+     * @since 1.0
+     */
+    public Code getCode() {
+<span class="fc" id="L330">        return code;</span>
+    }
+
+    // uses getDefinedPackage() for Java 9 and later, with fallback to getPackage()
+    @SuppressWarnings(&quot;deprecation&quot;)
+    private Package getDefinedPackageOrPackage(String name) {
+<span class="pc bpc" id="L336" title="1 of 2 branches missed.">        if (GET_DEFINED_PACKAGE_METHOD == null) {</span>
+<span class="fc" id="L337">            return getPackage(name);</span>
+        }
+        try {
+<span class="nc" id="L340">            return (Package)GET_DEFINED_PACKAGE_METHOD.invoke(this, name);</span>
+<span class="nc" id="L341">        } catch (IllegalAccessException | InvocationTargetException e) {</span>
+<span class="nc" id="L342">            return getPackage(name);</span>
+        }
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

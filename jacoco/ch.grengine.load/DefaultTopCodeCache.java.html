@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultTopCodeCache.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">grengine</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.load</a> &gt; <span class="el_source">DefaultTopCodeCache.java</span></div><h1>DefaultTopCodeCache.java</h1><pre class="source lang-java linenums">/*
+   Copyright 2014-now by Alain Stalder. Made in Switzerland.
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.load;
+
+import ch.grengine.code.Compiler;
+import ch.grengine.code.CompilerFactory;
+import ch.grengine.code.SingleSourceCode;
+import ch.grengine.code.groovy.DefaultGroovyCompiler;
+import ch.grengine.code.groovy.DefaultGroovyCompilerFactory;
+import ch.grengine.source.Source;
+import ch.grengine.source.SourceFactory;
+import ch.grengine.sources.SourcesUtil;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static java.util.Objects.requireNonNull;
+
+
+/**
+ * Default implementation of the {@link SourceFactory} interface.
+ * &lt;p&gt;
+ * No automatic eviction of cached code.
+ * 
+ * @since 1.0
+ * 
+ * @author Alain Stalder
+ * @author Made in Switzerland.
+ */
+public class DefaultTopCodeCache implements TopCodeCache {
+    
+    private final Builder builder;
+    private volatile State state;
+    private final CompilerFactory compilerFactory;
+        
+    /**
+     * constructor from builder.
+     *
+     * @param builder builder
+     * 
+     * @since 1.0
+     */
+<span class="fc" id="L57">    protected DefaultTopCodeCache(Builder builder) {</span>
+<span class="fc" id="L58">        this.builder = builder.commit();</span>
+<span class="fc" id="L59">        state = new State(builder.getParent());</span>
+<span class="fc" id="L60">        compilerFactory = builder.getCompilerFactory();</span>
+<span class="fc" id="L61">    }</span>
+    
+    @Override
+    public SingleSourceCode getUpToDateCode(final Source source) {
+
+<span class="fc" id="L66">        final State stateNow = state;</span>
+
+<span class="fc" id="L68">        SingleSourceCode code = stateNow.cache.get(source);</span>
+<span class="fc bfc" id="L69" title="All 4 branches covered.">        if (code != null &amp;&amp; code.getLastModifiedAtCompileTime() == source.getLastModified()) {</span>
+<span class="fc" id="L70">            return code;</span>
+        }
+        
+<span class="fc" id="L73">        synchronized(this) {</span>
+            // prevent multiple compilations
+<span class="fc" id="L75">            code = stateNow.cache.get(source);</span>
+<span class="fc bfc" id="L76" title="All 4 branches covered.">            if (code != null &amp;&amp; code.getLastModifiedAtCompileTime() == source.getLastModified()) {</span>
+<span class="fc" id="L77">                return code;</span>
+            }
+<span class="fc" id="L79">            final Compiler compiler = compilerFactory.newCompiler(stateNow.parent);</span>
+<span class="fc" id="L80">            code = (SingleSourceCode)compiler.compile(SourcesUtil.sourceToSources(source, compilerFactory));</span>
+<span class="fc" id="L81">            stateNow.cache.put(source, code);</span>
+<span class="fc" id="L82">            return code;</span>
+        }
+    }
+    
+    @Override
+    public void setParent(final ClassLoader parent) {
+<span class="fc" id="L88">        requireNonNull(parent, &quot;Parent class loader is null.&quot;);</span>
+<span class="fc" id="L89">        state = new State(parent);</span>
+<span class="fc" id="L90">    }</span>
+    
+    @Override
+    public ClassLoader getParent() {
+<span class="fc" id="L94">        return state.parent;</span>
+    }
+
+    @Override
+    public void clear() {
+<span class="fc" id="L99">        state.cache.clear();</span>
+<span class="fc" id="L100">    }</span>
+
+    @Override
+    public DefaultTopCodeCache clone() {
+<span class="fc" id="L104">        final State stateNow = state;</span>
+<span class="fc" id="L105">        final DefaultTopCodeCache topCodeCache =</span>
+<span class="fc" id="L106">                new DefaultTopCodeCache.Builder(stateNow.parent).setCompilerFactory(compilerFactory).build();</span>
+<span class="fc" id="L107">        topCodeCache.state.cache.putAll(stateNow.cache);</span>
+<span class="fc" id="L108">        return topCodeCache;</span>
+    }
+
+    /**
+     * gets the builder.
+     *
+     * @return builder
+     * 
+     * @since 1.0
+     */
+    public Builder getBuilder() {
+<span class="fc" id="L119">        return builder;</span>
+    }
+
+    /**
+     * gets the compiler factory.
+     *
+     * @return compiler factory
+     * 
+     * @since 1.0
+     */
+    public CompilerFactory getCompilerFactory() {
+<span class="fc" id="L130">        return compilerFactory;</span>
+    }
+    
+    
+    private static class State {
+        private final ClassLoader parent;
+        private final Map&lt;Source,SingleSourceCode&gt; cache;
+<span class="fc" id="L137">        private State(ClassLoader parent) {</span>
+<span class="fc" id="L138">            this.parent = parent;</span>
+<span class="fc" id="L139">            cache = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="fc" id="L140">        }</span>
+    }
+    
+    
+    /**
+     * Builder for instances of {@link DefaultTopCodeCache}.
+     * 
+     * @since 1.0
+     * 
+     * @author Alain Stalder
+     * @author Made in Switzerland.
+     */
+    public static class Builder {
+        
+        private boolean isCommitted;
+        
+        private final ClassLoader parent;
+        private CompilerFactory compilerFactory;
+        
+        /**
+         * constructor from parent class loader.
+         *
+         * @param parent parent class loader
+         * 
+         * @since 1.0
+         */
+<span class="fc" id="L166">        public Builder(ClassLoader parent) {</span>
+<span class="fc" id="L167">            this.parent = parent;</span>
+<span class="fc" id="L168">            isCommitted = false;</span>
+<span class="fc" id="L169">        }</span>
+
+        /**
+         * sets the compiler factory,
+         * default is a new instance {@link DefaultGroovyCompilerFactory} with default settings
+         *
+         * @param compilerFactory compiler factory
+         *
+         * @return this, for chaining calls
+         * 
+         * @since 1.0
+         */
+        public Builder setCompilerFactory(final CompilerFactory compilerFactory) {
+<span class="fc" id="L182">            check();</span>
+<span class="fc" id="L183">            this.compilerFactory = compilerFactory;</span>
+<span class="fc" id="L184">            return this;</span>
+        }
+        
+        /**
+         * gets the parent class loader.
+         *
+         * @return parent class loader
+         * 
+         * @since 1.0
+         */
+        public ClassLoader getParent() {
+<span class="fc" id="L195">            return parent;</span>
+        }
+        
+        /**
+         * gets the compiler factory.
+         *
+         * @return compiler factory
+         * 
+         * @since 1.0
+         */
+        public CompilerFactory getCompilerFactory() {
+<span class="fc" id="L206">            return compilerFactory;</span>
+        }
+        
+        private Builder commit() {
+<span class="fc bfc" id="L210" title="All 2 branches covered.">            if (!isCommitted) {</span>
+<span class="fc bfc" id="L211" title="All 2 branches covered.">                if (compilerFactory == null) {</span>
+<span class="fc" id="L212">                    compilerFactory = new DefaultGroovyCompilerFactory();</span>
+                }
+<span class="fc" id="L214">                isCommitted = true;</span>
+            }
+<span class="fc" id="L216">            return this;</span>
+        }
+        
+        /**
+         * builds a new instance of {@link DefaultGroovyCompiler}.
+         *
+         * @return new instance
+         * 
+         * @since 1.0
+         */
+        public DefaultTopCodeCache build() {
+<span class="fc" id="L227">            commit();</span>
+<span class="fc" id="L228">            return new DefaultTopCodeCache(this);</span>
+        }
+        
+        private void check() {
+<span class="fc bfc" id="L232" title="All 2 branches covered.">            if (isCommitted) {</span>
+<span class="fc" id="L233">                throw new IllegalStateException(&quot;Builder already used.&quot;);</span>
+            }
+<span class="fc" id="L235">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
