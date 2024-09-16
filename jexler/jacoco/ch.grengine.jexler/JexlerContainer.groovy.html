@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JexlerContainer.groovy</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jexler-core</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.jexler</a> &gt; <span class="el_source">JexlerContainer.groovy</span></div><h1>JexlerContainer.groovy</h1><pre class="source lang-java linenums">/*
+   Copyright 2012-now  Jex Jexler (Alain Stalder)
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.jexler
+
+import ch.grengine.jexler.service.Service
+import ch.grengine.jexler.service.ServiceGroup
+
+import ch.grengine.jexler.Grengine
+import ch.grengine.jexler.code.CompilerFactory
+import ch.grengine.jexler.code.groovy.DefaultGroovyCompiler
+import ch.grengine.jexler.code.groovy.DefaultGroovyCompilerFactory
+import ch.grengine.jexler.engine.LayeredEngine
+import ch.grengine.jexler.except.GrengineException
+import ch.grengine.jexler.load.DefaultTopCodeCacheFactory
+import ch.grengine.jexler.load.LoadMode
+import ch.grengine.jexler.source.DefaultSourceFactory
+import ch.grengine.jexler.sources.Sources
+import groovy.transform.CompileStatic
+import org.codehaus.groovy.control.CompilerConfiguration
+import org.codehaus.groovy.control.customizers.ImportCustomizer
+import org.quartz.Scheduler
+import org.quartz.impl.DirectSchedulerFactory
+import org.quartz.simpl.RAMJobStore
+import org.quartz.simpl.SimpleThreadPool
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+/**
+ * Container of all jexlers in a directory.
+ *
+ * @author Jex Jexler (Alain Stalder)
+ */
+@CompileStatic
+class JexlerContainer extends ServiceGroup implements Service, IssueTracker, Closeable {
+
+<span class="fc" id="L50">    private static final Logger LOG = LoggerFactory.getLogger(JexlerContainer.class)</span>
+
+    private static final String EXT = '.groovy'
+
+    private final File dir
+
+    /** Map of jexler ID to jexler. */
+    private final Map&lt;String,Jexler&gt; jexlerMap
+
+    private final IssueTracker issueTracker
+
+    private Scheduler scheduler
+    private final Object schedulerLock
+
+    private Grengine grengine
+
+    /**
+     * Constructor from jexler script directory.
+     * @param dir directory which contains jexler scripts
+     * @throws RuntimeException if given dir is not a directory or does not exist
+     */
+    JexlerContainer(final File dir) {
+        // service ID is directory name
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        super(dir.exists() ? dir.name : null)</span>
+<span class="fc bfc" id="L74" title="All 4 branches covered.">        if (!dir.exists()) {</span>
+<span class="fc" id="L75">            throw new RuntimeException(&quot;Directory '$dir.absolutePath' does not exist.&quot;)</span>
+<span class="pc bfc" id="L76" title="All 4 branches covered.">        } else  if (!dir.isDirectory()) {</span>
+<span class="fc" id="L77">            throw new RuntimeException(&quot;File '$dir.absolutePath' is not a directory.&quot;)</span>
+        }
+<span class="fc" id="L79">        this.dir = dir</span>
+<span class="fc" id="L80">        jexlerMap = new TreeMap&lt;&gt;()</span>
+<span class="fc" id="L81">        issueTracker = new IssueTrackerBase()</span>
+<span class="fc" id="L82">        schedulerLock = new Object()</span>
+        // calls also refresh() via JexlerContainerSources
+<span class="fc" id="L84">        grengine = createGrengine()</span>
+<span class="fc" id="L85">    }</span>
+
+    /**
+     * Refresh list of jexlers.
+     * Add new jexlers for new script files;
+     * remove old jexlers if their script file is gone and they are stopped.
+     */
+    void refresh() {
+<span class="fc" id="L93">        synchronized (jexlerMap) {</span>
+            // list directory and create jexlers in map for new script files in directory
+<span class="pc bpc" id="L95" title="1 of 2 branches missed.">            dir.listFiles()?.each { final File file -&gt;</span>
+<span class="fc bfc" id="L96" title="All 8 branches covered.">                if (file.isFile() &amp;&amp; !file.isHidden()) {</span>
+<span class="fc" id="L97">                    final String id = getJexlerId(file)</span>
+<span class="fc bfc" id="L98" title="All 10 branches covered.">                    if (id != null &amp;&amp; !jexlerMap.containsKey(id)) {</span>
+<span class="fc" id="L99">                        final Jexler jexler = new Jexler(file, this)</span>
+<span class="fc" id="L100">                        jexlerMap[jexler.id] = jexler</span>
+<span class="pc" id="L101">                    }</span>
+<span class="pc" id="L102">                }</span>
+            }
+
+            // recreate list while omitting jexlers without script file that are stopped
+<span class="fc" id="L106">            services.clear()</span>
+<span class="fc" id="L107">            jexlerMap.each { final id, final jexler -&gt;</span>
+<span class="fc bfc" id="L108" title="All 6 branches covered.">                if (jexler.file.exists() || jexler.state.on) {</span>
+<span class="fc" id="L109">                    services.add(jexler)</span>
+<span class="pc" id="L110">                }</span>
+            }
+
+            // recreate map with list entries
+<span class="fc" id="L114">            jexlerMap.clear()</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">            for (final Jexler jexler : jexlers) {</span>
+<span class="fc" id="L116">                jexlerMap[jexler.id] = jexler</span>
+<span class="fc" id="L117">            }</span>
+<span class="fc" id="L118">        }</span>
+<span class="fc" id="L119">    }</span>
+
+    /**
+     * Start jexlers that are marked as autostart.
+     */
+    @Override
+    void start() {
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        for (final Jexler jexler : jexlers) {</span>
+<span class="pc bpc" id="L127" title="1 of 4 branches missed.">            if (jexler.metaConfig?.autostart) {</span>
+<span class="fc" id="L128">                jexler.start()</span>
+            }
+<span class="fc" id="L130">        }</span>
+<span class="fc" id="L131">    }</span>
+
+    @Override
+    void stop() {
+<span class="fc" id="L135">        super.stop()</span>
+        // replace grengine to clean up possibly accumulated grapes
+<span class="fc" id="L137">        grengine = createGrengine()</span>
+<span class="fc" id="L138">    }</span>
+
+    @Override
+    void trackIssue(final Issue issue) {
+<span class="fc" id="L142">        issueTracker.trackIssue(issue)</span>
+<span class="fc" id="L143">    }</span>
+
+    @Override
+    void trackIssue(final Service service, final String message, final Throwable cause) {
+<span class="fc" id="L147">        issueTracker.trackIssue(service, message, cause)</span>
+<span class="fc" id="L148">    }</span>
+
+    @Override
+    List&lt;Issue&gt; getIssues() {
+<span class="fc" id="L152">        return issueTracker.issues</span>
+<span class="nc" id="L153">    }</span>
+
+    @Override
+    void forgetIssues() {
+<span class="fc" id="L157">        issueTracker.forgetIssues()</span>
+<span class="fc" id="L158">    }</span>
+
+    /**
+     * Get the list of all jexlers, first runnable jexlers,
+     * then non-runnable ones, each group sorted by id.
+     *
+     * This is a copy, iterating over it can be freely done
+     * and trying to add or remove list elements throws
+     * an UnsupportedOperationException.
+     */
+    List&lt;Jexler&gt; getJexlers() {
+<span class="fc" id="L169">        final List&lt;Jexler&gt; jexlers = new LinkedList&lt;&gt;()</span>
+<span class="fc" id="L170">        final List&lt;Jexler&gt; nonRunnables = new LinkedList&lt;&gt;()</span>
+<span class="fc" id="L171">        synchronized(jexlerMap) {</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">            for (final Service service : services) {</span>
+<span class="fc" id="L173">                Jexler jexler = (Jexler)service</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">                if (jexler.runnable) {</span>
+<span class="fc" id="L175">                    jexlers.add(jexler)</span>
+<span class="fc" id="L176">                } else {</span>
+<span class="fc" id="L177">                    nonRunnables.add(jexler)</span>
+                }
+<span class="fc" id="L179">            }</span>
+<span class="fc" id="L180">            jexlers.addAll(nonRunnables)</span>
+<span class="fc" id="L181">        }</span>
+<span class="fc" id="L182">        return Collections.unmodifiableList(jexlers)</span>
+<span class="nc" id="L183">    }</span>
+
+    /**
+     * Get the jexler for the given id.
+     * @return jexler for given id or null if none
+     */
+    Jexler getJexler(final String id) {
+<span class="fc" id="L190">        synchronized(jexlerMap) {</span>
+<span class="fc" id="L191">            return jexlerMap[id]</span>
+<span class="nc" id="L192">        }</span>
+<span class="nc" id="L193">    }</span>
+
+    /**
+     * Get container directory.
+     */
+    File getDir() {
+<span class="fc" id="L199">        return dir</span>
+<span class="nc" id="L200">    }</span>
+
+    /**
+     * Get the file for the given jexler id,
+     * even if no such file exists (yet).
+     */
+    File getJexlerFile(final String id) {
+<span class="fc" id="L207">        return new File(dir, &quot;$id$EXT&quot;)</span>
+<span class="nc" id="L208">    }</span>
+
+    /**
+     * Get the jexler id for the given file,
+     * even if the file does not exist (any more),
+     * or null if not a jexler script.
+     */
+    String getJexlerId(final File jexlerFile) {
+<span class="fc" id="L216">        final String name = jexlerFile.name</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        if (name.endsWith(EXT)) {</span>
+<span class="fc" id="L218">            return name.substring(0, name.length() - EXT.length())</span>
+<span class="nc" id="L219">        } else {</span>
+<span class="fc" id="L220">            return null</span>
+        }
+<span class="nc" id="L222">    }</span>
+
+    /**
+     * Get shared quartz scheduler, already started.
+     */
+    Scheduler getScheduler() {
+<span class="fc" id="L228">        synchronized (schedulerLock) {</span>
+<span class="fc bfc" id="L229" title="All 4 branches covered.">            if (scheduler == null) {</span>
+<span class="fc" id="L230">                final String uuid = UUID.randomUUID()</span>
+<span class="fc" id="L231">                final String name = &quot;JexlerContainerScheduler-$id-$uuid&quot;</span>
+<span class="fc" id="L232">                final String instanceId = name</span>
+<span class="fc" id="L233">                DirectSchedulerFactory.instance.createScheduler(name, instanceId,</span>
+<span class="fc" id="L234">                        new SimpleThreadPool(5, Thread.currentThread().priority), new RAMJobStore())</span>
+<span class="fc" id="L235">                scheduler = DirectSchedulerFactory.instance.getScheduler(name)</span>
+<span class="fc" id="L236">                scheduler.start()</span>
+            }
+<span class="fc" id="L238">            return scheduler</span>
+<span class="nc" id="L239">        }</span>
+<span class="nc" id="L240">    }</span>
+
+    /**
+     * Stop the shared quartz scheduler, plus close maybe other things.
+     */
+    void close() {
+<span class="fc" id="L246">        synchronized (schedulerLock) {</span>
+<span class="pc bpc" id="L247" title="2 of 4 branches missed.">            if (scheduler != null) {</span>
+<span class="fc" id="L248">                scheduler.shutdown()</span>
+<span class="fc" id="L249">                scheduler = null</span>
+            }
+<span class="fc" id="L251">        }</span>
+<span class="fc" id="L252">    }</span>
+
+    /**
+     * Get logger for container.
+     */
+    static Logger getLogger() {
+<span class="nc" id="L258">        return LOG</span>
+<span class="nc" id="L259">    }</span>
+
+    /**
+     * Convenience method for getting ConfigSlurper config from parsing
+     * the given jexler; uses the class already compiled by Grengine.
+     */
+    ConfigObject getAsConfig(final String jexlerId) {
+<span class="fc" id="L266">        final Class clazz = grengine.load(new File(dir, &quot;${jexlerId}.groovy&quot;))</span>
+<span class="fc" id="L267">        return new ConfigSlurper().parse(clazz)</span>
+<span class="nc" id="L268">    }</span>
+
+    /**
+     * Get container Grengine instance.
+     */
+    Grengine getGrengine() {
+<span class="fc" id="L274">        return grengine</span>
+<span class="nc" id="L275">    }</span>
+
+    private Grengine createGrengine() {
+
+        // setting most things explicitly even if would be default value anyway
+
+        // for Grape to work, a GroovyClassLoader must be a parent loader
+<span class="fc" id="L282">        final GroovyClassLoader runtimeLoader = new GroovyClassLoader()</span>
+<span class="fc" id="L283">        Grengine.Grape.activate()</span>
+        //System.setProperty('groovy.grape.report.downloads', 'true')
+        //System.setProperty('ivy.message.logger.level', '4')
+
+<span class="fc" id="L287">        final CompilerConfiguration config = new CompilerConfiguration().with {</span>
+<span class="pc" id="L288">            optimizationOptions.put(INVOKEDYNAMIC, true)</span>
+<span class="fc" id="L289">            targetBytecode = JDK8</span>
+<span class="fc" id="L290">            addCompilationCustomizers(new ImportCustomizer().with {</span>
+<span class="pc" id="L291">                addStarImports('ch.grengine.jexler', 'ch.grengine.jexler.service', 'ch.grengine.jexler.tool')</span>
+            })
+        }
+<span class="fc" id="L294">        DefaultGroovyCompiler.withGrape(config, runtimeLoader)</span>
+
+<span class="fc" id="L296">        final CompilerFactory theCompilerFactory = new DefaultGroovyCompilerFactory(config)</span>
+
+<span class="fc" id="L298">        final Grengine gren = new Grengine.Builder().with {</span>
+<span class="fc" id="L299">            sourcesLayers = [(Sources)new JexlerContainerSources.Builder(this).with {</span>
+<span class="pc" id="L300">                        compilerFactory = theCompilerFactory</span>
+<span class="fc" id="L301">                        sourceFactory = new DefaultSourceFactory()</span>
+<span class="fc" id="L302">                        latencyMs = 800</span>
+<span class="fc" id="L303">                        build()</span>
+<span class="nc" id="L304">                    }]</span>
+<span class="fc" id="L305">            latencyMs = 800</span>
+<span class="fc" id="L306">            engine = new LayeredEngine.Builder().with {</span>
+<span class="pc" id="L307">                parent = runtimeLoader</span>
+<span class="fc" id="L308">                allowSameClassNamesInMultipleCodeLayers = false</span>
+<span class="fc" id="L309">                allowSameClassNamesInParentAndCodeLayers = true</span>
+<span class="fc" id="L310">                withTopCodeCache = true</span>
+<span class="fc" id="L311">                topLoadMode = LoadMode.PARENT_FIRST</span>
+<span class="fc" id="L312">                topCodeCacheFactory = new DefaultTopCodeCacheFactory.Builder().with {</span>
+<span class="pc" id="L313">                    compilerFactory = theCompilerFactory</span>
+<span class="fc" id="L314">                    build()</span>
+                }
+<span class="fc" id="L316">                build()</span>
+            }
+<span class="fc" id="L318">            build()</span>
+        }
+
+<span class="fc" id="L321">        final GrengineException lastUpdateException = gren.lastUpdateException</span>
+<span class="fc bfc" id="L322" title="All 4 branches covered.">        if (lastUpdateException != null) {</span>
+<span class="fc" id="L323">            trackIssue(this, 'Compiling container sources failed at startup' +</span>
+                    ' - utility classes are not available to jexlers.', lastUpdateException)
+        }
+
+<span class="fc" id="L327">        return gren</span>
+<span class="nc" id="L328">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>

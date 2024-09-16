@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServiceUtil.groovy</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jexler-core</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.jexler.service</a> &gt; <span class="el_source">ServiceUtil.groovy</span></div><h1>ServiceUtil.groovy</h1><pre class="source lang-java linenums">/*
+   Copyright 2012-now  Jex Jexler (Alain Stalder)
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.jexler.service
+
+import ch.grengine.jexler.JexlerUtil
+
+import groovy.transform.CompileStatic
+import org.quartz.CronExpression
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+import java.text.ParseException
+import java.text.SimpleDateFormat
+
+import static ch.grengine.jexler.service.CronService.CRON_NOW
+import static ch.grengine.jexler.service.CronService.CRON_NOW_AND_STOP
+
+/**
+ * Service utilities.
+ *
+ * Includes some static methods that might be useful in Groovy scripts
+ * or for writing custom services.
+ *
+ * @author Jex Jexler (Alain Stalder)
+ */
+@CompileStatic
+class ServiceUtil {
+
+<span class="fc" id="L43">    private static final Logger LOG = LoggerFactory.getLogger(ServiceUtil.class)</span>
+
+    /**
+     * Wait until service state is not BUSY_STARTING or timeout.
+     * @param service service
+     * @param timeout timeout in ms
+     * @return true if no timeout, false otherwise
+     */
+    static boolean waitForStartup(final Service service, final long timeout) {
+<span class="fc" id="L52">        final long t0 = System.currentTimeMillis()</span>
+        while (true) {
+<span class="fc bfc" id="L54" title="All 4 branches covered.">            if (!service.state.busyStarting) {</span>
+<span class="fc" id="L55">                return true</span>
+            }
+<span class="fc bfc" id="L57" title="All 4 branches covered.">            if (System.currentTimeMillis() - t0 &gt;= timeout) {</span>
+<span class="fc" id="L58">                return false</span>
+            }
+<span class="fc" id="L60">            JexlerUtil.waitAtLeast(10)</span>
+<span class="pc" id="L61">        }</span>
+<span class="nc" id="L62">    }</span>
+
+    /**
+     * Wait until service state is not OFF or timeout.
+     * @param service service
+     * @param timeout timeout in ms
+     * @return true if no timeout, false otherwise
+     */
+    static boolean waitForShutdown(final Service service, final long timeout) {
+<span class="fc" id="L71">        final long t0 = System.currentTimeMillis()</span>
+        while (true) {
+<span class="fc bfc" id="L73" title="All 2 branches covered.">            if (service.state.off) {</span>
+<span class="fc" id="L74">                return true</span>
+            }
+<span class="fc bfc" id="L76" title="All 4 branches covered.">            if (System.currentTimeMillis() - t0 &gt;= timeout) {</span>
+<span class="fc" id="L77">                return false</span>
+            }
+<span class="fc" id="L79">            JexlerUtil.waitAtLeast(10)</span>
+<span class="pc" id="L80">        }</span>
+<span class="nc" id="L81">    }</span>
+
+    /**
+     * Convert to &quot;quartz-style&quot; cron with seconds.
+     * &lt;ul&gt;
+     * &lt;li&gt;leaves untouched if 'now' or 'now+stop'&lt;/li&gt;
+     * &lt;li&gt;adds '0' as first item (seconds) if contains 5 items,
+     *     i.e. if is an &quot;old-style&quot; cron string with minutes resolution&lt;/li&gt;
+     * &lt;li&gt;replaces '*' for day-of-month or day-of-week with '?' when needed
+     *     by quartz to parse such a cron string...&lt;/li&gt;
+     * &lt;li&gt;logs the new cron string if was modified above&lt;/li&gt;
+     * &lt;li&gt;validates the resulting cron string&lt;/li&gt;
+     * &lt;li&gt;if valid, logs the next date+time when the cron string would fire&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @throws IllegalArgumentException if the resulting cron string is not a valid quartz cron string
+     */
+    static String toQuartzCron(final String cron) throws IllegalArgumentException {
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (CRON_NOW == cron | CRON_NOW_AND_STOP == cron) {</span>
+<span class="fc" id="L100">            return cron</span>
+        }
+<span class="fc" id="L102">        final List&lt;String&gt; list = cron.trim().split(/\s/) as List&lt;String&gt;</span>
+        // add seconds if missing
+<span class="fc bfc" id="L104" title="All 4 branches covered.">        if (list.size() == 5) {</span>
+<span class="fc" id="L105">            list.add(0, '0') // on every full minute</span>
+        }
+        // set at least one '?' for day-of-month or day-of-week
+<span class="fc bfc" id="L108" title="All 12 branches covered.">        if (list.size() &gt;= 6 &amp;&amp; list[5] != '?' &amp;&amp; list[3] != '?') {</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">            if (list[5] == '*') {</span>
+<span class="fc" id="L110">                list[5] = '?'</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">            } else if (list[3] == '*') {</span>
+<span class="fc" id="L112">                list[3] = '?'</span>
+            }
+        }
+
+<span class="fc" id="L116">        final String quartzCron = list.join(' ')</span>
+<span class="fc bfc" id="L117" title="All 2 branches covered.">        if (quartzCron != cron) {</span>
+<span class="fc" id="L118">            LOG.trace(&quot;cron '$cron' =&gt; '$quartzCron'&quot;)</span>
+        }
+<span class="fc" id="L120">        CronExpression cronExpression</span>
+        try {
+<span class="fc" id="L122">            cronExpression = new CronExpression(quartzCron)</span>
+<span class="fc" id="L123">        } catch (final ParseException e) {</span>
+<span class="fc" id="L124">            throw new IllegalArgumentException(&quot;Could not parse cron '$quartzCron': $e.message&quot;, e)</span>
+<span class="pc" id="L125">        }</span>
+<span class="fc" id="L126">        final SimpleDateFormat format = new SimpleDateFormat('EEE dd MMM yyyy HH:mm:ss.SSS')</span>
+<span class="fc" id="L127">        final Date nextDate = cronExpression.getNextValidTimeAfter(new Date())</span>
+<span class="fc bfc" id="L128" title="All 4 branches covered.">        final String next = nextDate == null ? null : format.format(nextDate)</span>
+<span class="fc" id="L129">        LOG.trace(&quot;next '$quartzCron' =&gt; $next&quot;)</span>
+<span class="fc" id="L130">        return quartzCron</span>
+<span class="nc" id="L131">    }</span>
+
+<span class="nc" id="L133">}</span>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>

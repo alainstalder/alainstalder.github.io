@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Jexler.groovy</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jexler-core</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.jexler</a> &gt; <span class="el_source">Jexler.groovy</span></div><h1>Jexler.groovy</h1><pre class="source lang-java linenums">/*
+   Copyright 2012-now  Jex Jexler (Alain Stalder)
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.jexler
+
+import ch.grengine.jexler.service.Event
+import ch.grengine.jexler.service.Service
+import ch.grengine.jexler.service.ServiceGroup
+import ch.grengine.jexler.service.ServiceState
+import ch.grengine.jexler.service.StopEvent
+
+import ch.grengine.jexler.Grengine
+import groovy.transform.CompileStatic
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.regex.Matcher
+import java.util.regex.Pattern
+
+import static ch.grengine.jexler.service.ServiceState.BUSY_EVENT
+import static ch.grengine.jexler.service.ServiceState.BUSY_STARTING
+import static ch.grengine.jexler.service.ServiceState.BUSY_STOPPING
+import static ch.grengine.jexler.service.ServiceState.IDLE
+import static ch.grengine.jexler.service.ServiceState.OFF
+
+/**
+ * Jexler, runs a Groovy script that handles events.
+ *
+ * @author Jex Jexler (Alain Stalder)
+ */
+@CompileStatic
+class Jexler implements Service, IssueTracker {
+
+<span class="fc" id="L48">    private static final Logger LOG = LoggerFactory.getLogger(Jexler.class)</span>
+
+<span class="fc" id="L50">    private static final Grengine META_CONFIG_GRENGINE = new Grengine()</span>
+
+<span class="fc" id="L52">    private static final Pattern META_CONFIG_PATTERN = Pattern.compile(</span>
+            /^\/\/\s*jexler\s*\{\s*(.*?)\s*}$/, Pattern.CASE_INSENSITIVE)
+
+    /**
+     * Blocking queue for events sent to a Jexler
+     * ('events' variable in jexler scripts).
+     *
+     * Typically events are taken with {@link Events#take()}
+     * in an event loop in the jexler script.
+     *
+     * @author Jex Jexler (Alain Stalder)
+     */
+    @CompileStatic
+    class Events extends LinkedBlockingQueue&lt;Event&gt; {
+        /**
+         * Take event from queue (blocks).
+         */
+        @Override
+        Event take() {
+<span class="fc" id="L71">            state = IDLE</span>
+            while (true) {
+                try {
+<span class="fc" id="L74">                    final Event event = (Event)super.take()</span>
+<span class="fc" id="L75">                    state = BUSY_EVENT</span>
+<span class="fc" id="L76">                    return event</span>
+<span class="pc" id="L77">                } catch (InterruptedException e) {</span>
+<span class="fc" id="L78">                    trackIssue(Jexler.this, 'Could not take event.', e)</span>
+<span class="fc" id="L79">                }</span>
+<span class="pc" id="L80">            }</span>
+<span class="nc" id="L81">        }</span>
+
+        /**
+         * Return true if there is a next event in the queue
+         * and it is a stop event.
+         */
+        boolean nextIsStop() {
+<span class="fc" id="L88">            return peek() instanceof StopEvent</span>
+<span class="nc" id="L89">        }</span>
+
+        /**
+         * Return true if the event queue contains a stop event.
+         */
+        boolean hasStop() {
+<span class="fc" id="L95">            final Object[] events = toArray()</span>
+<span class="pc bpc" id="L96" title="1 of 4 branches missed.">            for (final Object event : events) {</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">                if (event instanceof StopEvent) {</span>
+<span class="fc" id="L98">                    return true</span>
+                }
+<span class="fc" id="L100">            }</span>
+<span class="fc" id="L101">            return false</span>
+<span class="nc" id="L102">        }</span>
+
+    }
+
+    private final File file
+    private final String id
+    private final JexlerContainer container
+    private volatile ServiceState state
+    private volatile Script script
+
+    private volatile Thread scriptThread
+
+    /** Event queue. */
+    protected final Events events
+
+    /**
+     * Group of services.
+     * Scripts are free to add services to this list or not - if they do,
+     * services are automatically stopped by jexler after the script exits
+     * (regularly or throws).
+     */
+    private final ServiceGroup services
+
+    private final IssueTracker issueTracker
+
+    private ConfigObject metaConfigAtStart
+
+    /**
+     * Constructor.
+     * @param file file with jexler script
+     * @param container jexler container that contains this jexler
+     */
+    Jexler(final File file, final JexlerContainer container) {
+<span class="fc" id="L135">        this.file = file</span>
+<span class="fc" id="L136">        this.container = container</span>
+<span class="fc" id="L137">        id = container.getJexlerId(file)</span>
+<span class="fc" id="L138">        state = OFF</span>
+<span class="fc" id="L139">        events = new Events()</span>
+<span class="fc" id="L140">        services = new ServiceGroup(&quot;${id}.services&quot;)</span>
+<span class="fc" id="L141">        issueTracker = new IssueTrackerBase()</span>
+<span class="fc" id="L142">    }</span>
+
+    /**
+     * Initiate jexler start.
+     * Immediately marks the jexler service as starting up, then tries to
+     * start the script.
+     * Typically returns before the jexler script has started or completed
+     * to initialize all of its services.
+     * The jexler remains in the running state until the script exits in
+     * any way, after it has been tried to stop all registered services.
+     */
+    @Override
+    void start() {
+<span class="fc" id="L155">        LOG.info(&quot;*** Jexler start: $id&quot;)</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        if (state.on) {</span>
+<span class="fc" id="L157">            return</span>
+        }
+
+<span class="fc" id="L160">        state = BUSY_STARTING</span>
+<span class="fc" id="L161">        forgetIssues()</span>
+<span class="fc" id="L162">        final Jexler jexler = this</span>
+
+        // compile, load, create and run in a separate thread
+<span class="fc" id="L165">        scriptThread = new Thread(</span>
+<span class="fc" id="L166">                new Runnable() {</span>
+                    void run() {
+
+                        // read meta config
+<span class="fc" id="L170">                        metaConfigAtStart = readMetaConfig()</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">                        final boolean runnable = metaConfigAtStart != null</span>
+<span class="fc bfc" id="L172" title="All 10 branches covered.">                        if (!runnable || !issues.empty) {</span>
+<span class="fc" id="L173">                            state = OFF</span>
+<span class="fc" id="L174">                            return</span>
+                        }
+
+                        // define script binding
+<span class="fc" id="L178">                        final Binding binding = new Binding([</span>
+                                'jexler' : jexler,
+                                'container' : container,
+                                'events' : events,
+                                'services' : services,
+                                'log' : LOG,
+                        ])
+
+                        // compile and load class
+<span class="fc" id="L187">                        final Class clazz</span>
+                        try {
+<span class="fc" id="L189">                            clazz = container.grengine.load(file)</span>
+<span class="fc" id="L190">                        } catch (final Throwable tCompile) {</span>
+                            // (may throw almost anything, checked or not)
+<span class="fc" id="L192">                            trackIssue(jexler, 'Script compile failed.', tCompile)</span>
+<span class="fc" id="L193">                            state = OFF</span>
+<span class="fc" id="L194">                            return</span>
+<span class="pc" id="L195">                        }</span>
+
+                        // not a runnable script?
+<span class="pc bpc" id="L198" title="2 of 4 branches missed.">                        if (!Script.class.isAssignableFrom(clazz)) {</span>
+<span class="nc" id="L199">                            state = OFF</span>
+<span class="nc" id="L200">                            return</span>
+                        }
+
+                        // create script instance
+                        try {
+<span class="fc" id="L205">                            script = (Script)clazz.newInstance()</span>
+<span class="fc" id="L206">                        } catch (final Throwable tCreate) {</span>
+                            // (may throw anything, checked or not)
+<span class="fc" id="L208">                            trackIssue(jexler, 'Script create failed.', tCreate)</span>
+<span class="fc" id="L209">                            state = OFF</span>
+<span class="fc" id="L210">                            return</span>
+<span class="pc" id="L211">                        }</span>
+
+                        // run script
+<span class="fc" id="L214">                        script.binding = binding</span>
+                        try {
+<span class="fc" id="L216">                            script.run()</span>
+<span class="fc" id="L217">                        } catch (final Throwable tRun) {</span>
+                            // (script may throw anything, checked or not)
+<span class="fc" id="L219">                            trackIssue(jexler, 'Script run failed.', tRun)</span>
+<span class="pc" id="L220">                        }</span>
+
+<span class="fc" id="L222">                        state = BUSY_STOPPING</span>
+
+                        try {
+<span class="fc" id="L225">                            services.stop()</span>
+<span class="fc" id="L226">                        } catch (final Throwable tStop) {</span>
+<span class="fc" id="L227">                            trackIssue(services, 'Could not stop services.', tStop)</span>
+<span class="pc" id="L228">                        }</span>
+<span class="fc" id="L229">                        events.clear()</span>
+<span class="fc" id="L230">                        services.services.clear()</span>
+
+<span class="fc" id="L232">                        script = null</span>
+<span class="fc" id="L233">                        state = OFF</span>
+<span class="fc" id="L234">                    }</span>
+                })
+<span class="fc" id="L236">        scriptThread.daemon = true</span>
+<span class="fc" id="L237">        scriptThread.name = id</span>
+<span class="fc" id="L238">        scriptThread.start()</span>
+<span class="fc" id="L239">    }</span>
+
+    /**
+     * Handle given event.
+     */
+    void handle(final Event event) {
+<span class="fc" id="L245">        events.add(event)</span>
+<span class="fc" id="L246">    }</span>
+
+    /**
+     * Initiate jexler stop by sending it a stop event to handle.
+     */
+    @Override
+    void stop() {
+<span class="fc" id="L253">        LOG.info(&quot;*** Jexler stop: $id&quot;)</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        if (state.off) {</span>
+<span class="fc" id="L255">            return</span>
+        }
+<span class="fc" id="L257">        handle(new StopEvent(this))</span>
+<span class="fc" id="L258">    }</span>
+
+    @Override
+    ServiceState getState() {
+<span class="fc" id="L262">        return state</span>
+<span class="nc" id="L263">    }</span>
+
+    @Override
+    void zap() {
+<span class="fc" id="L267">        LOG.info(&quot;*** Jexler zap: $id&quot;)</span>
+<span class="fc bfc" id="L268" title="All 2 branches covered.">        if (state.off) {</span>
+<span class="fc" id="L269">            return</span>
+        }
+<span class="fc" id="L271">        state = OFF</span>
+<span class="fc" id="L272">        final ServiceGroup services = this.services</span>
+<span class="fc" id="L273">        final Thread scriptThread = this.scriptThread</span>
+<span class="fc" id="L274">        final Jexler jexler = this</span>
+<span class="fc" id="L275">        new Thread() {</span>
+            void run() {
+<span class="pc bpc" id="L277" title="2 of 4 branches missed.">                if (services != null) {</span>
+<span class="fc" id="L278">                    services.zap()</span>
+                }
+<span class="pc bpc" id="L280" title="2 of 4 branches missed.">                if (scriptThread != null) {</span>
+                    try {
+<span class="fc" id="L282">                        scriptThread.stop()</span>
+<span class="pc" id="L283">                    } catch (final Throwable tZap) {</span>
+<span class="nc" id="L284">                        trackIssue(jexler, 'Failed to stop jexler thread.', tZap)</span>
+<span class="pc" id="L285">                    }</span>
+                }
+<span class="fc" id="L287">            }</span>
+        }.start()
+<span class="fc" id="L289">    }</span>
+
+    @Override
+    String getId() {
+<span class="fc" id="L293">        return id</span>
+<span class="nc" id="L294">    }</span>
+
+    @Override
+    void trackIssue(final Issue issue) {
+<span class="fc" id="L298">        issueTracker.trackIssue(issue)</span>
+<span class="fc" id="L299">    }</span>
+
+    @Override
+    void trackIssue(final Service service, final String message, final Throwable cause) {
+<span class="fc" id="L303">        issueTracker.trackIssue(service, message, cause)</span>
+<span class="fc" id="L304">    }</span>
+
+    @Override
+    List&lt;Issue&gt; getIssues() {
+<span class="fc" id="L308">        return issueTracker.issues</span>
+<span class="nc" id="L309">    }</span>
+
+    @Override
+    void forgetIssues() {
+<span class="fc" id="L313">        issueTracker.forgetIssues()</span>
+<span class="fc" id="L314">    }</span>
+
+    /**
+     * Get jexler script file.
+     */
+    File getFile() {
+<span class="fc" id="L320">        return file</span>
+<span class="nc" id="L321">    }</span>
+
+    /**
+     * Get directory that contains script file.
+     */
+    File getDir() {
+<span class="fc" id="L327">        return file.parentFile</span>
+<span class="nc" id="L328">    }</span>
+
+    /**
+     * Get container that contains this jexler.
+     */
+    JexlerContainer getContainer() {
+<span class="fc" id="L334">        return container</span>
+<span class="nc" id="L335">    }</span>
+
+    /**
+     * Get jexler script instance, null if script is not running.
+     */
+    Script getScript() {
+<span class="fc" id="L341">        return script</span>
+<span class="nc" id="L342">    }</span>
+
+    /**
+     * Convenience method for getting ConfigSlurper config from parsing
+     * this jexler; uses the class already compiled by Grengine.
+     */
+    ConfigObject getAsConfig() {
+<span class="fc" id="L349">        return new ConfigSlurper().parse(container.grengine.load(file))</span>
+<span class="nc" id="L350">    }</span>
+
+    /**
+     * Return true if jexler is indicated as a jexler in the first
+     * line of its script text (meta config); more precisely returns
+     * the state at startup if already running, else reads from file.
+     */
+    boolean isRunnable() {
+<span class="fc bfc" id="L358" title="All 2 branches covered.">        return metaConfig != null</span>
+<span class="nc" id="L359">    }</span>
+
+    /**
+     * Get meta config.
+     *
+     * Read from the jexler file at each call except if the jexler
+     * is already running, in that case returns meta config read at
+     * the time the jexler was started.
+     *
+     * The meta config of a jexler is stored in the first line of
+     * a jexler script file.
+     *
+     * Example:
+     * &lt;pre&gt;
+     * // Jexler { autostart = true; some = 'thing' }
+     * &lt;/pre&gt;
+     *
+     * Returns null if there is no meta config in the jexler or the
+     * file could not be read; returns an empty config object if
+     * config is present but could not be parsed.
+     */
+    ConfigObject getMetaConfig() {
+<span class="fc bfc" id="L381" title="All 2 branches covered.">        if (state.on) {</span>
+<span class="fc" id="L382">            return metaConfigAtStart</span>
+<span class="nc" id="L383">        } else {</span>
+<span class="fc" id="L384">            return readMetaConfig()</span>
+        }
+<span class="nc" id="L386">    }</span>
+
+    private ConfigObject readMetaConfig() {
+<span class="fc bfc" id="L389" title="All 4 branches covered.">        if (!file.exists()) {</span>
+<span class="fc" id="L390">            return null</span>
+        }
+
+<span class="fc" id="L393">        final List&lt;String&gt; lines</span>
+        try {
+<span class="fc" id="L395">            lines = file.readLines()</span>
+<span class="fc" id="L396">        } catch (final IOException eRead) {</span>
+<span class="fc" id="L397">            final String msg = &quot;Could not read meta config from jexler file '$file.absolutePath'.&quot;</span>
+<span class="fc" id="L398">            trackIssue(this.container, msg, eRead)</span>
+<span class="fc" id="L399">            return null</span>
+<span class="pc" id="L400">        }</span>
+<span class="fc bfc" id="L401" title="All 2 branches covered.">        if (lines.empty) {</span>
+<span class="fc" id="L402">            return null</span>
+        }
+
+<span class="fc" id="L405">        final String line = lines.first().trim()</span>
+<span class="fc" id="L406">        final Matcher matcher = META_CONFIG_PATTERN.matcher(line)</span>
+<span class="fc bfc" id="L407" title="All 4 branches covered.">        if (!matcher.matches()) {</span>
+<span class="fc" id="L408">            return null</span>
+        }
+<span class="fc" id="L410">        final String metaConfigText = matcher.group(1)</span>
+
+        // Using Grengine to automatically compile only once per unique
+        // meta config text
+        try {
+<span class="fc" id="L415">            final Script script = META_CONFIG_GRENGINE.create(metaConfigText)</span>
+<span class="fc" id="L416">            return new ConfigSlurper().parse(script)</span>
+<span class="pc" id="L417">        } catch (final Throwable tParse) {</span>
+            // (script may throw anything, checked or not)
+<span class="fc" id="L419">            final String msg = &quot;Could not parse meta config of jexler '$id'.&quot;</span>
+<span class="fc" id="L420">            trackIssue(this, msg, tParse)</span>
+<span class="fc" id="L421">            return new ConfigObject()</span>
+<span class="nc" id="L422">        }</span>
+<span class="nc" id="L423">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>

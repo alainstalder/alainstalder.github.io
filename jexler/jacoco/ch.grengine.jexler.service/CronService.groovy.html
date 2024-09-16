@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CronService.groovy</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">jexler-core</a> &gt; <a href="index.source.html" class="el_package">ch.grengine.jexler.service</a> &gt; <span class="el_source">CronService.groovy</span></div><h1>CronService.groovy</h1><pre class="source lang-java linenums">/*
+   Copyright 2012-now  Jex Jexler (Alain Stalder)
+
+   Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       https://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package ch.grengine.jexler.service
+
+import ch.grengine.jexler.Jexler
+
+import groovy.transform.CompileStatic
+import org.quartz.CronScheduleBuilder
+import org.quartz.Job
+import org.quartz.JobBuilder
+import org.quartz.JobDataMap
+import org.quartz.JobDetail
+import org.quartz.JobExecutionContext
+import org.quartz.JobExecutionException
+import org.quartz.Scheduler
+import org.quartz.Trigger
+import org.quartz.TriggerBuilder
+import org.quartz.TriggerKey
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+
+import static ch.grengine.jexler.service.ServiceState.IDLE
+import static ch.grengine.jexler.service.ServiceState.OFF
+
+/**
+ * A cron service, creates events at configurable times.
+ * Implemented using the quartz library.
+ *
+ * @author Jex Jexler (Alain Stalder)
+ */
+@CompileStatic
+class CronService extends ServiceBase {
+
+<span class="fc" id="L48">    private static final Logger LOG = LoggerFactory.getLogger(CronService.class)</span>
+
+    /**
+     * Pseudo cron string for a single cron event immediately.
+     */
+    public static final String CRON_NOW = 'now'
+
+    /**
+     * Pseudo cron string for a single cron event immediately,
+     * followed by a single stop event.
+     */
+    public static final String CRON_NOW_AND_STOP = &quot;$CRON_NOW+stop&quot;
+
+    private final Jexler jexler
+    private String cron
+    private Scheduler scheduler
+    private TriggerKey triggerKey
+
+    /**
+     * Constructor.
+     * @param jexler the jexler to send events to
+     * @param id the id of the service
+     */
+    CronService(final Jexler jexler, final String id) {
+<span class="fc" id="L72">        super(id)</span>
+<span class="fc" id="L73">        this.jexler = jexler</span>
+<span class="fc" id="L74">    }</span>
+
+    /**
+     * Set cron pattern, e.g. &quot;* * * * *&quot; or with seconds &quot;0 * * * * *&quot;.
+     * Use &quot;now&quot; for now, i.e. for a single event immediately,
+     * or &quot;now+stop&quot; for a single event immediately, followed
+     * by a StopEvent, which can both be useful for testing.
+     * @return this (for chaining calls)
+     */
+    CronService setCron(final String cron) {
+<span class="fc" id="L84">        this.cron = ServiceUtil.toQuartzCron(cron)</span>
+<span class="fc" id="L85">        return this</span>
+<span class="nc" id="L86">    }</span>
+
+    /**
+     * Get cron pattern.
+     */
+    String getCron() {
+<span class="fc" id="L92">        return cron</span>
+<span class="nc" id="L93">    }</span>
+
+    /**
+     * Set quartz scheduler.
+     * Default is a scheduler shared by all jexlers in the same jexler container.
+     * @return this (for chaining calls)
+     */
+    CronService setScheduler(final Scheduler scheduler) {
+<span class="fc" id="L101">        this.scheduler = scheduler</span>
+<span class="fc" id="L102">        return this</span>
+<span class="nc" id="L103">    }</span>
+
+    /**
+     * Get quartz scheduler.
+     */
+    Scheduler getScheduler() {
+<span class="fc" id="L109">        return scheduler</span>
+<span class="nc" id="L110">    }</span>
+
+    /**
+     * Get jexler.
+     */
+    Jexler getJexler() {
+<span class="fc" id="L116">        return jexler</span>
+<span class="nc" id="L117">    }</span>
+
+    @Override
+    void start() {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (state.on) {</span>
+<span class="fc" id="L122">            return</span>
+        }
+<span class="fc bfc" id="L124" title="All 2 branches covered.">        if (cron.startsWith(CRON_NOW)) {</span>
+<span class="fc" id="L125">            LOG.trace(&quot;new cron event: $cron&quot;)</span>
+<span class="fc" id="L126">            jexler.handle(new CronEvent(this, cron))</span>
+<span class="fc" id="L127">            state = IDLE</span>
+<span class="fc bfc" id="L128" title="All 2 branches covered.">            if (cron == CRON_NOW_AND_STOP) {</span>
+<span class="fc" id="L129">                jexler.handle(new StopEvent(this))</span>
+<span class="fc" id="L130">                state = OFF</span>
+            }
+<span class="fc" id="L132">            return</span>
+        }
+
+<span class="fc" id="L135">        final String uuid = UUID.randomUUID()</span>
+<span class="fc" id="L136">        final JobDetail job = JobBuilder.newJob(CronJob.class)</span>
+<span class="fc" id="L137">                .withIdentity(&quot;job-$id-$uuid&quot;, jexler.id)</span>
+                .usingJobData(['service':this] as JobDataMap)
+                .build()
+<span class="fc" id="L140">        final Trigger trigger = TriggerBuilder.newTrigger()</span>
+<span class="fc" id="L141">                .withIdentity(&quot;trigger-$id-$uuid&quot;, jexler.id)</span>
+<span class="fc" id="L142">                .withSchedule(CronScheduleBuilder.cronSchedule(cron))</span>
+                .startNow()
+                .build()
+<span class="fc" id="L145">        triggerKey = trigger.key</span>
+
+<span class="fc bfc" id="L147" title="All 4 branches covered.">        if (scheduler == null) {</span>
+<span class="fc" id="L148">            scheduler = jexler.container.scheduler</span>
+        }
+<span class="fc" id="L150">        scheduler.scheduleJob(job, trigger)</span>
+<span class="fc" id="L151">        state = IDLE</span>
+<span class="fc" id="L152">    }</span>
+
+    @Override
+    void stop() {
+<span class="fc bfc" id="L156" title="All 2 branches covered.">        if (state.off) {</span>
+<span class="fc" id="L157">            return</span>
+        }
+<span class="fc bfc" id="L159" title="All 4 branches covered.">        if (scheduler != null) {</span>
+<span class="fc" id="L160">            scheduler.unscheduleJob(triggerKey)</span>
+        }
+<span class="fc" id="L162">        state = OFF</span>
+<span class="fc" id="L163">    }</span>
+
+    @Override
+    void zap() {
+<span class="fc bfc" id="L167" title="All 2 branches covered.">        if (state.off) {</span>
+<span class="fc" id="L168">            return</span>
+        }
+<span class="fc" id="L170">        state = OFF</span>
+<span class="pc bpc" id="L171" title="2 of 4 branches missed.">        if (scheduler != null) {</span>
+<span class="fc" id="L172">            new Thread() {</span>
+                void run() {
+                    try {
+<span class="fc" id="L175">                        scheduler.unscheduleJob(triggerKey)</span>
+<span class="pc" id="L176">                    } catch (final Throwable tUnschedule) {</span>
+<span class="nc" id="L177">                        LOG.trace('failed to unschedule cron job', tUnschedule)</span>
+<span class="pc" id="L178">                    }</span>
+<span class="fc" id="L179">                }</span>
+            }.start()
+        }
+<span class="fc" id="L182">    }</span>
+
+    /**
+     * Internal class, only public because otherwise not called by quartz scheduler.
+     */
+    static class CronJob implements Job {
+        void execute(final JobExecutionContext ctx) throws JobExecutionException {
+<span class="fc" id="L189">            final CronService service = (CronService)ctx.jobDetail.jobDataMap.service</span>
+<span class="fc" id="L190">            final String savedName = Thread.currentThread().name</span>
+<span class="fc" id="L191">            Thread.currentThread().name = &quot;$service.jexler.id|$service.id&quot;</span>
+<span class="fc" id="L192">            LOG.trace(&quot;new cron event: $service.cron&quot;)</span>
+<span class="fc" id="L193">            service.jexler.handle(new CronEvent(service, service.cron))</span>
+<span class="fc" id="L194">            Thread.currentThread().name = savedName</span>
+<span class="fc" id="L195">        }</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.2.201808211720</span></div></body></html>
