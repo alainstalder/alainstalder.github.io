@@ -1,6 +1,8 @@
--- HyperTalk script extracted from the "vue" stack of trueTools 1.03:
--- Stack itself
+HyperTalk script extracted from the "vue" stack of trueTools 1.03:
 
+Stack itself
+
+```
 on vue f, kind, dither, scale, rs
   --
   if kind is empty then put "file" into kind
@@ -274,3 +276,4 @@ on vue f, kind, dither, scale, rs
     if not menubarVisible() then show menubar -- is necessairy
   end if
 end vue
+```
