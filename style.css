@@ -19,6 +19,8 @@ p.x-small {font-size: x-small}
 
 span.gray { color: gray; }
 
+img.company-logo { height:24px }
+
 @font-face {
   font-family: 'Roboto';
   font-style: normal;
